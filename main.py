@@ -11,9 +11,10 @@ import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm 
-import csv_manager
-import prediction
-from errors_prediction import generating_errors
+from CsvManager import *
+from Prediction import *
+from ErrorsPrediction import *
+from BuildingModel import * 
 from numpy import argmax
 from datetime import *
 from tensorflow import keras
@@ -67,22 +68,6 @@ def prepare_data(timeseries_data, look_back):
         X.append(seq_x.flatten())
         y.append(seq_y[0])
     return np.array(X), np.array(y)
-#triying to build the model
-def buildModel(enter, data):
-    model = Sequential()
-    model.add(LSTM(55, dropout= 0.02, batch_input_shape=(None,data.shape[1],data.shape[2]), return_sequences=True))
-    model.add(LSTM(40, dropout=0.02, activity_regularizer=regularizers.l2(1e-5), return_sequences=False))
-    model.add(Dense(data.shape[2]))
-    model.compile(optimizer='adam', loss='mse', metrics=['acc', 'mae'])
-    return model
-#date bettween start en end of all DI - even date not in bdd. 
-def dateBetweenStartEnd(_array) -> List:
-    return _array[0][1],_array[len(_array)-1][1], np.array(pd.date_range(_array[0][1],_array[len(_array)-1][1]))
-#get list of date between date and nb following days
-def listDatesBetweenDateAndNumber(date, number) -> List:
-    start = date + timedelta(days=1)
-    end = date + timedelta(days=number)
-    return np.array(pd.date_range(start, end))
 #normalising dataArray with values between 0 and 1
 def normalisingArray(dataArray) -> List:
     return scaler0To1.fit_transform(dataArray)
@@ -116,16 +101,16 @@ def is_request_nbDi(data) -> List :
             request.append(0)
     return request
 #######################################RUNNING#######################################################################
-data_array=csv_manager.sortDijonExtractByDate(csv_manager.loadCsvFile('database/dijonData_extract_19_04_2021.csv'))
-meteo = csv_manager.loadCsvFile('database/meteo_07_03_2019_to_30_04_2021.csv')
+data_array=sortDijonExtractByDate(loadCsvFile('database/dijonData_extract_19_04_2021.csv'))
+meteo = loadCsvFile('database/meteo_07_03_2019_to_30_04_2021.csv')
 print("nb line in dijon database --csv file-- : {}".format(len(data_array)))
-data_array = csv_manager.datetime_to_date(data_array)
-csv_manager.groupByDateAndComments(csv_manager.saltingComments(data_array))
-groupByDateAndNbDi=csv_manager.groupingByDateAndDI(data_array)
+data_array = datetime_to_date(data_array)
+groupByDateAndComments(saltingComments(data_array))
+groupByDateAndNbDi=groupingByDateAndDI(data_array)
 nbDiByDateArray=np.array(list(groupByDateAndNbDi.items()))
 print("nb line/distinct date in dijon database base : {}".format(len(nbDiByDateArray)))
 print('starting date in bdd : ' + str(dateBetweenStartEnd(data_array)[0]) + ', ending date : ' + str(dateBetweenStartEnd(data_array)[1]))
-evenHidenDateDijonBDD=csv_manager.matchingDateStartEnd(dateBetweenStartEnd(data_array)[2], groupByDateAndNbDi)
+evenHidenDateDijonBDD=matchingDateStartEnd(dateBetweenStartEnd(data_array)[2], groupByDateAndNbDi)
 print("nb line/distinct date after matching all days : {}".format(len(evenHidenDateDijonBDD)))
 df=pd.DataFrame(evenHidenDateDijonBDD, columns=['date','nbDi'])
 #adding some informations to our dataframe
@@ -241,7 +226,7 @@ plt.close()
 generating_errors(y_test, test_predict, nb_elmnts_to_print)
 #############################################################################
 #predict feature : (nb_days_predict) days
-feature = np.rint(prediction.predictNextDays(model, dijon, nb_days_predict, df_scaled, look_back))
+feature = np.rint(predictNextDays(model, dijon, nb_days_predict, df_scaled, look_back))
 #############################################################################
 last_data = 62
 plt.subplots(figsize=(18,9))
@@ -261,12 +246,6 @@ plt.legend()
 plt.savefig('imgs/4- last '+str(last_data)+' jours + predict_'+str(nb_days_predict)+'_next_days.png')
 plt.close()
 #############################################################################
-
-'''#f-score selection calculate
-selector = SelectKBest(f_classif, k=10)
-selected_features = selector.fit_transform(dijon_dates, label_train)
-'''
-
 plt.subplots(figsize=(24,11))
 plt.xticks(rotation=90)
 plt.bar(dijon_dates, feature, color='red', label=str(nb_days_predict) + ' feature(s)')
