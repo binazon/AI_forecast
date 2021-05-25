@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import unidecode, re
 from sklearn.preprocessing import *
+from datetime import *
 #######################################METHODS#####################################################################
 #loading csv file
 def loadCsvFile(path) -> pd.DataFrame:
@@ -66,3 +67,11 @@ def matchingDateStartEnd(unionDijon, nbDiByDateJson) -> List:
         else:
             dijonBddJson[str(union).split("T")[0]]=0
     return np.array(list(dijonBddJson.items()))
+#date bettween start en end of all DI - even date not in bdd. 
+def dateBetweenStartEnd(_array) -> List:
+    return _array[0][1],_array[len(_array)-1][1], np.array(pd.date_range(_array[0][1],_array[len(_array)-1][1]))
+#get list of date between date and nb following days
+def listDatesBetweenDateAndNumber(date, number) -> List:
+    start = date + timedelta(days=1)
+    end = date + timedelta(days=number)
+    return np.array(pd.date_range(start, end))
