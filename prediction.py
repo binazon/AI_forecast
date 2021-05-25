@@ -1,7 +1,7 @@
 from typing import List
 import numpy as np
 import pandas as pd
-
+#######################################METHODS#####################################################################
 #predict data in the next nbdays
 def predictNextDays(model_entry, array_enter, nbdays, scaled, look_back) -> List:
     x_input = np.array(pd.DataFrame(array_enter).tail(look_back), dtype='float')
