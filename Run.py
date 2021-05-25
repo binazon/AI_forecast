@@ -15,6 +15,7 @@ from CsvManager import *
 from Prediction import *
 from ErrorsPrediction import *
 from BuildingModel import * 
+from DataAugmentate import *
 from numpy import argmax
 from datetime import *
 from tensorflow import keras
@@ -74,32 +75,6 @@ def normalisingArray(dataArray) -> List:
 #removing normalisation of dataArray : from values between 0 and 1 to real values
 def removing_normalingArray(dataArray) -> List:
     return scaler0To1.inverse_transform(dataArray)
-#getting frequence of nbDi in nbDi column
-def freq_nbDi(data) -> List:
-    tab = []
-    pos = 1
-    for i in data[:,1]:
-        tab.append(data[:,1][0:pos].tolist().count(i))
-        pos = pos + 1
-    return tab
-#getting all peak all nbDi
-def is_peak_nbDi(data) -> List:
-    peak = []
-    for i in data[:,1]:
-        if(int(i) >= 6):
-            peak.append(1)
-        else:
-            peak.append(0)
-    return peak
-#getting all ways without request of intervention
-def is_request_nbDi(data) -> List : 
-    request = []
-    for i in data[:,1]:
-        if(int(i) > 0):
-            request.append(1)
-        else:
-            request.append(0)
-    return request
 #######################################RUNNING#######################################################################
 data_array=sortDijonExtractByDate(loadCsvFile('database/dijonData_extract_19_04_2021.csv'))
 meteo = loadCsvFile('database/meteo_07_03_2019_to_30_04_2021.csv')
@@ -129,12 +104,12 @@ df['humiditee_max'] = meteo['HUMIDITE_MAX_POURCENT']
 #############################################################################
 dijon_timestamps=df[["date"]]
 #plotting and saving all nbDi by date
-plt.subplots(figsize=(24,11))
+plt.subplots(figsize=(18,9))
 plt.plot(*zip(*sorted(zip(dijon_timestamps.values.flatten(),df["nbDi"].astype(int)))), color='blue', label='nbDi')
 plt.xticks(df.index, dijon_timestamps.values.flatten(), rotation=90)
 plt.locator_params(axis='x', nbins=15)
-plt.ylabel("nbDi",fontsize=14)
 plt.xlabel("date",fontsize=14)
+plt.ylabel("nbDi",fontsize=14)
 plt.legend()
 plt.savefig('imgs/1- nbDiByDate.png')
 plt.close()
@@ -163,11 +138,11 @@ f2.close()
 f3.close()
 f4.close()
 #EarlyStopping to prevent the overfitting on the losses
-es = EarlyStopping(monitor='val_loss', patience=3)
+es = EarlyStopping(monitor='val_loss', patience=6)
 #building the model LSTM - Long Short Time Memory
 model = buildModel(UNITS, dijon_train)
 #20% of validation data are used on the train dataset
-history = model.fit(dijon_train, label_train, validation_data=(dijon_test, label_test), epochs=epochs, batch_size=batch_size, callbacks=[es])
+history = model.fit(dijon_train, label_train, verbose=2, validation_split=0.2, epochs=epochs, batch_size=batch_size, callbacks=[es])
 #evaluation in train dataset
 eval_train = model.evaluate(dijon_train, label_train)
 print("taux de pertes -- train :",eval_train[0]*100 , "%")
@@ -193,8 +168,8 @@ plt.plot(history.history['loss'], label = 'train_losses')
 plt.plot(history.history['acc'], label = 'train_accuracy')
 plt.plot(history.history['val_loss'], label='val_losses')
 plt.plot(history.history['val_acc'], label='val_accuracy')
-plt.xlabel("nb epochs",fontsize=14)
-plt.ylabel("accuracy and losses",fontsize=14)
+plt.xlabel("epoch",fontsize=14)
+plt.ylabel("validation and train values",fontsize=14)
 plt.legend()
 plt.savefig('imgs/2- history_train.png')
 plt.close()
@@ -246,7 +221,7 @@ plt.legend()
 plt.savefig('imgs/4- last '+str(last_data)+' jours + predict_'+str(nb_days_predict)+'_next_days.png')
 plt.close()
 #############################################################################
-plt.subplots(figsize=(24,11))
+plt.subplots(figsize=(18,9))
 plt.xticks(rotation=90)
 plt.bar(dijon_dates, feature, color='red', label=str(nb_days_predict) + ' feature(s)')
 plt.title(str(nb_days_predict) + ' next predictions values (bar chart)')
