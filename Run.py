@@ -16,6 +16,7 @@ from Prediction import *
 from ErrorsPrediction import *
 from BuildingModel import * 
 from DataAugmentate import *
+from Meteo import *
 from numpy import argmax
 from datetime import *
 from tensorflow import keras
@@ -87,6 +88,8 @@ print("nb line/distinct date in dijon database base : {}".format(len(nbDiByDateA
 print('starting date in bdd : ' + str(dateBetweenStartEnd(data_array)[0]) + ', ending date : ' + str(dateBetweenStartEnd(data_array)[1]))
 evenHidenDateDijonBDD=matchingDateStartEnd(dateBetweenStartEnd(data_array)[2], groupByDateAndNbDi)
 print("nb line/distinct date after matching all days : {}".format(len(evenHidenDateDijonBDD)))
+#creation of the historical JSON file
+generateJsonFile(data_array)
 df=pd.DataFrame(evenHidenDateDijonBDD, columns=['date','nbDi'])
 #adding some informations to our dataframe
 df['freq_nbDi'] = freq_nbDi(evenHidenDateDijonBDD)
@@ -104,7 +107,7 @@ df['humiditee_max'] = meteo['HUMIDITE_MAX_POURCENT']
 #############################################################################
 dijon_timestamps=df[["date"]]
 #plotting and saving all nbDi by date
-plt.subplots(figsize=(18,9))
+plt.subplots(figsize=(24,11))
 plt.plot(*zip(*sorted(zip(dijon_timestamps.values.flatten(),df["nbDi"].astype(int)))), color='blue', label='nbDi')
 plt.xticks(df.index, dijon_timestamps.values.flatten(), rotation=90)
 plt.locator_params(axis='x', nbins=15)
@@ -114,7 +117,8 @@ plt.legend()
 plt.savefig('imgs/1- nbDiByDate.png')
 plt.close()
 #extends nbDi data with equivalent datas : freq_nbDi, is_peak, ...
-dijon=df[["nbDi", "freq_nbDi", "is_peak_nbDi", "is_request_nbDi"]].astype('float')
+dijon=df[["nbDi", "freq_nbDi", "is_peak_nbDi", "is_request_nbDi", 'vitesse_vent_max', 'couverture_nuageuse',
+'visibilitee', 'temp_day', 'min_temp_c', 'max_temp_c', 'pression', 'humiditee_max']].astype('float')
 #writing the dijon trnsformed file
 f1, f2, f3 = open("files/1- init_dataframe.txt", "w"), open("files/3- X_dataset.txt", "w"),open("files/4- Y_dataset.txt", "w")
 f1.write(str(dijon.head(50)))
@@ -142,7 +146,7 @@ es = EarlyStopping(monitor='val_loss', patience=6)
 #building the model LSTM - Long Short Time Memory
 model = buildModel(UNITS, dijon_train)
 #20% of validation data are used on the train dataset
-history = model.fit(dijon_train, label_train, verbose=2, validation_split=0.2, epochs=epochs, batch_size=batch_size, callbacks=[es])
+history = model.fit(dijon_train, label_train, verbose=2, validation_split=0.2, epochs=epochs, batch_size=batch_size)
 #evaluation in train dataset
 eval_train = model.evaluate(dijon_train, label_train)
 print("taux de pertes -- train :",eval_train[0]*100 , "%")
@@ -186,7 +190,6 @@ print('nb elements in test :',len(y_test))
 print('nb elements to plot :', nb_elmnts_to_print, 'premiers test éléments')
 #plotting truth and nbDi prediction
 fig,ax=plt.subplots(figsize=(18,9))
-plt.xticks(rotation=90)
 plt.ylabel("nb demandes d'intervention",fontsize=14)
 plt.xlabel("pas par date",fontsize=14)
 plt.title('prediction et valeurs réelles : ('+str(nb_elmnts_to_print)+' premiers éléments)')
@@ -204,7 +207,7 @@ generating_errors(y_test, test_predict, nb_elmnts_to_print)
 feature = np.rint(predictNextDays(model, dijon, nb_days_predict, df_scaled, look_back))
 #############################################################################
 last_data = 62
-plt.subplots(figsize=(18,9))
+plt.subplots(figsize=(24,11))
 plt.xticks(rotation=90)
 plt.xlabel("date de demande d'intervention",fontsize=14)
 plt.ylabel("nombre de demande d'intervention",fontsize=14)
@@ -221,7 +224,7 @@ plt.legend()
 plt.savefig('imgs/4- last '+str(last_data)+' jours + predict_'+str(nb_days_predict)+'_next_days.png')
 plt.close()
 #############################################################################
-plt.subplots(figsize=(18,9))
+plt.subplots(figsize=(24,11))
 plt.xticks(rotation=90)
 plt.bar(dijon_dates, feature, color='red', label=str(nb_days_predict) + ' feature(s)')
 plt.title(str(nb_days_predict) + ' next predictions values (bar chart)')
