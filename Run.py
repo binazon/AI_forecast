@@ -78,7 +78,7 @@ def removing_normalingArray(dataArray) -> List:
     return scaler0To1.inverse_transform(dataArray)
 #######################################RUNNING#######################################################################
 data_array=sortDijonExtractByDate(loadCsvFile('database/dijonData_extract_19_04_2021.csv'))
-meteo = loadCsvFile('database/meteo_07_03_2019_to_30_04_2021.csv')
+#meteo = loadCsvFile('database/meteo_07_03_2019_to_30_04_2021.csv')
 print("nb line in dijon database --csv file-- : {}".format(len(data_array)))
 data_array = datetime_to_date(data_array)
 groupByDateAndComments(saltingComments(data_array))
@@ -90,6 +90,7 @@ evenHidenDateDijonBDD=matchingDateStartEnd(dateBetweenStartEnd(data_array)[2], g
 print("nb line/distinct date after matching all days : {}".format(len(evenHidenDateDijonBDD)))
 #geenrating of the historical JSON and CSV files
 generateHistoryMeteo(data_array)
+meteo = loadCsvFile("files/history/generated/CSV/historyMeteo"+str(data_array[0][1])+"_"+str(data_array[len(data_array)-1][1])+".csv")
 #creating the first data frame
 df=pd.DataFrame(evenHidenDateDijonBDD, columns=['date','nbDi'])
 #adding some informations to our dataframe
@@ -97,14 +98,19 @@ df['freq_nbDi'] = freq_nbDi(evenHidenDateDijonBDD)
 df['is_peak_nbDi'] = is_peak_nbDi(evenHidenDateDijonBDD)
 df['is_request_nbDi'] = is_request_nbDi(evenHidenDateDijonBDD)
 #adding meteo informations to our dataframe
-df['vitesse_vent_max'] = meteo['VITESSE_VENT_MAX_KMH']
-df['couverture_nuageuse'] = meteo['COUVERTURE_NUAGEUSE_MOYENNE_PERCENT']
-df['visibilitee'] = meteo['VISIBILITE_MOYENNE_KM']
-df['temp_day'] = meteo[["TEMPERATURE_MATIN_C","TEMPERATURE_MIDI_C","TEMPERATURE_SOIREE_C"]].mean(axis=1)
-df['min_temp_c'] = meteo['MIN_TEMPERATURE_C']
-df['max_temp_c'] = meteo['MAX_TEMPERATURE_C']
-df['pression'] = meteo['PRESSION_MAX_MB']
-df['humiditee_max'] = meteo['HUMIDITE_MAX_POURCENT']
+df['vitesse_vent_max'] = meteo['wind_spd']
+df['vitesse_rafale_vent'] = meteo['wind_gust_spd']
+df['direction_vent'] = meteo['wind_dir']
+df['couverture_nuageuse'] = meteo['clouds']
+df['precipitation'] = meteo['precip']
+df['temp_day'] = meteo['temp']
+df['min_temp_c'] = meteo['min_temp']
+df['max_temp_c'] = meteo['max_temp']
+df['pression'] = meteo['pres']
+df['humiditee_max'] = meteo['rh']
+df['neige'] = meteo['snow']
+df['radiation_solaire'] = meteo['t_solar_rad']
+df['rosee'] = meteo['dewpt']
 #############################################################################
 dijon_timestamps=df[["date"]]
 #plotting and saving all nbDi by date
@@ -117,15 +123,16 @@ plt.ylabel("nbDi",fontsize=14)
 plt.legend()
 plt.savefig('imgs/1- nbDiByDate.png')
 plt.close()
-#extends nbDi data with equivalent datas : freq_nbDi, is_peak, ...
-dijon=df[["nbDi", "freq_nbDi", "is_peak_nbDi", "is_request_nbDi", 'vitesse_vent_max', 'couverture_nuageuse',
-'visibilitee', 'temp_day', 'min_temp_c', 'max_temp_c', 'pression', 'humiditee_max']].astype('float')
+#extends nbDi data with augmented datas : freq_nbDi, is_peak, ...
+dijon=df[["nbDi", "freq_nbDi", "is_peak_nbDi", "is_request_nbDi", 'vitesse_vent_max','vitesse_rafale_vent', 'direction_vent',
+'couverture_nuageuse', 'precipitation', 'temp_day', 'min_temp_c', 'max_temp_c', 'pression', 'humiditee_max', 'neige', 
+'radiation_solaire', 'rosee']].astype('float')
 #writing the dijon trnsformed file
 f1, f2, f3 = open("files/1- init_dataframe.txt", "w"), open("files/3- X_dataset.txt", "w"),open("files/4- Y_dataset.txt", "w")
 f1.write(str(dijon.head(50)))
 X, Y, df_scaled = create_lstm_dataset(dijon, look_back)
 # writing dataset in file 
-f2.write(str(X.shape)+'\n'+str(X[0:50])) 
+f2.write(str(X.shape)+'\n'+str(X[0:50]))
 f3.write(str(Y.shape)+'\n'+str(Y[0:50]))
 f1.close()
 f2.close()

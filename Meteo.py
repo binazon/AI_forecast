@@ -14,11 +14,11 @@ api = "https://api.weatherbit.io/v2.0/history/daily?postal_code="+str(zipDijon)+
 #generating the history json & csv history file
 def generateHistoryMeteo(_array) -> int:
     array, checkedArray = [], []
-    pathJsonHistory = "files/history/JSON/historyMeteo"+str(_array[0][1])+"_"+str(_array[len(_array)-1][1])+".json"
-    pathJsonHistoryCheck = "files/history/JSON/historyMeteoChecked"+str(_array[0][1])+"_"+str(_array[len(_array)-1][1])+".json"
+    pathJsonHistory = "files/history/generated/JSON/historyMeteo"+str(_array[0][1])+"_"+str(_array[len(_array)-1][1])+".json"
+    pathJsonHistoryCheck = "files/history/generated/JSON/historyMeteoChecked"+str(_array[0][1])+"_"+str(_array[len(_array)-1][1])+".json"
     historyMeteoJSON = open(pathJsonHistory, "w")
     historyMeteoJSONChecked = open(pathJsonHistoryCheck, "w")
-    pathCsvGenerated = "files/history/CSV/historyMeteo"+str(_array[0][1])+"_"+str(_array[len(_array)-1][1])+".csv"
+    pathCsvGenerated = "files/history/generated/CSV/historyMeteo"+str(_array[0][1])+"_"+str(_array[len(_array)-1][1])+".csv"
     alldays = np.array(pd.date_range(_array[0][1],date.fromisoformat(_array[len(_array)-1][1])+timedelta(days=1)))
     element=0
     i = 0
