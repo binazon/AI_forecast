@@ -78,7 +78,6 @@ def removing_normalingArray(dataArray) -> List:
     return scaler0To1.inverse_transform(dataArray)
 #######################################RUNNING#######################################################################
 data_array=sortDijonExtractByDate(loadCsvFile('database/dijonData_extract_19_04_2021.csv'))
-#meteo = loadCsvFile('database/meteo_07_03_2019_to_30_04_2021.csv')
 print("nb line in dijon database --csv file-- : {}".format(len(data_array)))
 data_array = datetime_to_date(data_array)
 groupByDateAndComments(saltingComments(data_array))
