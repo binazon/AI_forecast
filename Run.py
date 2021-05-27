@@ -88,8 +88,9 @@ print("nb line/distinct date in dijon database base : {}".format(len(nbDiByDateA
 print('starting date in bdd : ' + str(dateBetweenStartEnd(data_array)[0]) + ', ending date : ' + str(dateBetweenStartEnd(data_array)[1]))
 evenHidenDateDijonBDD=matchingDateStartEnd(dateBetweenStartEnd(data_array)[2], groupByDateAndNbDi)
 print("nb line/distinct date after matching all days : {}".format(len(evenHidenDateDijonBDD)))
-#creation of the historical JSON file
-generateJsonFile(data_array)
+#geenrating of the historical JSON and CSV files
+generateHistoryMeteo(data_array)
+#creating the first data frame
 df=pd.DataFrame(evenHidenDateDijonBDD, columns=['date','nbDi'])
 #adding some informations to our dataframe
 df['freq_nbDi'] = freq_nbDi(evenHidenDateDijonBDD)
@@ -146,7 +147,7 @@ es = EarlyStopping(monitor='val_loss', patience=6)
 #building the model LSTM - Long Short Time Memory
 model = buildModel(UNITS, dijon_train)
 #20% of validation data are used on the train dataset
-history = model.fit(dijon_train, label_train, verbose=2, validation_split=0.2, epochs=epochs, batch_size=batch_size)
+history = model.fit(dijon_train, label_train, verbose=2, validation_split=0.2, epochs=epochs, shuffle=False, batch_size=batch_size)
 #evaluation in train dataset
 eval_train = model.evaluate(dijon_train, label_train)
 print("taux de pertes -- train :",eval_train[0]*100 , "%")
