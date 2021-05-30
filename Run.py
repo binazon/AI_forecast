@@ -16,6 +16,7 @@ from Prediction import *
 from ErrorsPrediction import *
 from BuildingModel import * 
 from DataAugmentate import *
+from DataSetForModel import *
 from Meteo import *
 from numpy import argmax
 from datetime import *
@@ -37,27 +38,11 @@ look_back = 3
 #number days trainna to predict
 nb_days_predict = 15
 UNITS = 150
-epochs = 1500
+epochs = 5
 batch_size =32
 test_size = 0.2
 #######################################METHODS#####################################################################
-#creating the lstm dataset
-def create_lstm_dataset(df, look):
-    number_of_rows = df.shape[0]
-    number_of_features = df.shape[1]
-    scaler = StandardScaler().fit(df.values)
-    transformed_dataset = scaler.transform(df.values)
-    transformed_df = pd.DataFrame(data = transformed_dataset, index=df.index)
-    #writing the dijon trnsformed file
-    f = open("files/2- dijon_df_transformed.txt", "w")
-    f.write(str(transformed_df.head(50)))
-    f.close()
-    train = np.empty([number_of_rows - look, look, number_of_features], dtype='float')
-    label = np.empty([number_of_rows - look, number_of_features])
-    for i in range(0, number_of_rows-look):
-        train[i] = transformed_df.iloc[i:i+look, 0:number_of_features]
-        label[i] = transformed_df.iloc[i+look:i+look+1, 0:number_of_features]
-    return train, label, scaler
+
 #using data preprocessing - simple LSTM RNN Model
 # -- each next value is based on look_back previous values
 def prepare_data(timeseries_data, look_back):
@@ -223,8 +208,8 @@ plt.title(str(last_data)+' derniers jours + ' + 'prédiction nbDi par date ('+ s
 dijon_timestamps = np.array(pd.DataFrame(dijon_timestamps).tail(last_data)).flatten()
 dijon_labels = np.array(pd.DataFrame(dijon['nbDi'], dtype='float').tail(last_data)).flatten()
 #plotting features values
-dijon_dates = listDatesBetweenDateAndNumber(date.fromisoformat(dijon_timestamps[len(dijon_timestamps)-1]), nb_days_predict)
-dijon_dates = [str(dijon_dates[i]).split("T")[0] for i in range(len(dijon_dates))]
+dijon_dates = np.array(listDatesBetweenDateAndNumber(date.fromisoformat(dijon_timestamps[len(dijon_timestamps)-1]), 
+nb_days_predict), dtype='datetime64[D]').astype(str)
 plt.plot(*zip(*sorted(zip(dijon_timestamps,dijon_labels))), color='blue', label='truth ' + str('in 62 last days'))
 plt.plot(*zip(*sorted(zip(dijon_dates, feature))), 'b:o', color='blue', label=str(nb_days_predict) + ' feature(s)')
 plt.legend()

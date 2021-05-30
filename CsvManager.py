@@ -62,14 +62,14 @@ def groupingByDateAndDI(array) -> Dict:
 def matchingDateStartEnd(unionDijon, nbDiByDateJson) -> List:
     dijonBddJson={}
     for union in unionDijon:
-        if(str(union).split("T")[0] in nbDiByDateJson.keys()):
-            dijonBddJson[str(union).split("T")[0]]=nbDiByDateJson.get(str(union).split("T")[0])
+        if(union in nbDiByDateJson.keys()):
+            dijonBddJson[union]=nbDiByDateJson.get(union)
         else:
-            dijonBddJson[str(union).split("T")[0]]=0
+            dijonBddJson[union]=0
     return np.array(list(dijonBddJson.items()))
 #date bettween start en end of all DI - even date not in bdd. 
 def dateBetweenStartEnd(_array) -> List:
-    return _array[0][1],_array[len(_array)-1][1], np.array(pd.date_range(_array[0][1],_array[len(_array)-1][1]))
+    return _array[0][1],_array[len(_array)-1][1], np.array(pd.date_range(_array[0][1],_array[len(_array)-1][1]), dtype='datetime64[D]').astype(str)
 #get list of date between date and nb following days
 def listDatesBetweenDateAndNumber(date, number) -> List:
     start = date + timedelta(days=1)
