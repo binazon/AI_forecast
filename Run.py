@@ -1,16 +1,12 @@
 #######################################AUTORS#############################################################################
 # Main file
 #######################################IMPORTING###########################################################################
-import math
 from numbers import Number
-import sys, os
 from typing import List
 import numpy as np
 import tensorflow as tf
 import pandas as pd
-import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm 
 from CsvManager import *
 from Prediction import *
 from ErrorsPrediction import *
@@ -20,7 +16,6 @@ from DataSetForModel import *
 from Meteo import *
 from numpy import argmax
 from datetime import *
-from tensorflow import keras
 from tensorflow.keras import *
 from keras import Input, Model
 from keras.models import *
@@ -30,37 +25,16 @@ from sklearn.metrics import *
 from sklearn.model_selection import *
 from sklearn.preprocessing import *
 from sklearn.feature_selection import *
-import seaborn as sns
 #######################################VARIABLES#####################################################################
 scaler0To1 = MinMaxScaler(feature_range=(-1,1))
 #number of time steps
-look_back = 3
+look_back = 14
 #number days trainna to predict
 nb_days_predict = 15
 UNITS = 150
-epochs = 5
+epochs = 500
 batch_size =32
 test_size = 0.2
-#######################################METHODS#####################################################################
-
-#using data preprocessing - simple LSTM RNN Model
-# -- each next value is based on look_back previous values
-def prepare_data(timeseries_data, look_back):
-    X, y = [],[]
-    for i in range(len(timeseries_data)):
-        end_ix = i + look_back
-        if(end_ix >= len(timeseries_data)):
-            break
-        seq_x, seq_y = timeseries_data[i:end_ix], timeseries_data[end_ix]
-        X.append(seq_x.flatten())
-        y.append(seq_y[0])
-    return np.array(X), np.array(y)
-#normalising dataArray with values between 0 and 1
-def normalisingArray(dataArray) -> List:
-    return scaler0To1.fit_transform(dataArray)
-#removing normalisation of dataArray : from values between 0 and 1 to real values
-def removing_normalingArray(dataArray) -> List:
-    return scaler0To1.inverse_transform(dataArray)
 #######################################RUNNING#######################################################################
 data_array=sortDijonExtractByDate(loadCsvFile('database/dijonData_extract_19_04_2021.csv'))
 print("nb line in dijon database --csv file-- : {}".format(len(data_array)))
@@ -108,16 +82,22 @@ plt.legend()
 plt.savefig('imgs/1- nbDiByDate.png')
 plt.close()
 #extends nbDi data with augmented datas : freq_nbDi, is_peak, ...
-dijon=df[["nbDi", "freq_nbDi", "is_peak_nbDi", "is_request_nbDi", 'vitesse_vent_max','vitesse_rafale_vent', 'direction_vent',
+'''dijon=df[["nbDi", "freq_nbDi", "is_peak_nbDi", "is_request_nbDi", 'vitesse_vent_max','vitesse_rafale_vent', 'direction_vent',
 'couverture_nuageuse', 'precipitation', 'temp_day', 'min_temp_c', 'max_temp_c', 'pression', 'humiditee_max', 'neige', 
-'radiation_solaire', 'rosee']].astype('float')
+'radiation_solaire', 'rosee']].astype('float')'''
+
+
+dijon=df[["nbDi", "freq_nbDi"]].astype('float')
+
+#dijon=df[["nbDi"]].astype('float')
+
 #writing the dijon trnsformed file
 f1, f2, f3 = open("files/1- init_dataframe.txt", "w"), open("files/3- X_dataset.txt", "w"),open("files/4- Y_dataset.txt", "w")
 f1.write(str(dijon.head(50)))
 X, Y, df_scaled = create_lstm_dataset(dijon, look_back)
 # writing dataset in file 
 f2.write(str(X.shape)+'\n'+str(X[0:50]))
-f3.write(str(Y.shape)+'\n'+str(Y[0:50]))
+f3.write(str(Y.shape)+'\n'+str(Y[-50:]))
 f1.close()
 f2.close()
 f3.close()
@@ -136,8 +116,9 @@ f4.close()
 #EarlyStopping to prevent the overfitting on the losses
 es = EarlyStopping(monitor='val_loss', patience=6)
 #building the model LSTM - Long Short Time Memory
-model = buildModel(UNITS, dijon_train)
+model = buildModel(UNITS, dijon_train, label_train)
 #20% of validation data are used on the train dataset
+#history = model.fit(dijon_train, label_train, verbose=2, validation_split=0.2, epochs=epochs, shuffle=False, batch_size=batch_size, callbacks=[es])
 history = model.fit(dijon_train, label_train, verbose=2, validation_split=0.2, epochs=epochs, shuffle=False, batch_size=batch_size)
 #evaluation in train dataset
 eval_train = model.evaluate(dijon_train, label_train)
@@ -149,14 +130,6 @@ eval_test = model.evaluate(dijon_test, label_test)
 print("taux de pertes -- test :",eval_test[0]*100 , "%")
 print("accuracy --test :",eval_test[1]*100 , "%")
 print("erreure absolue moyenne --test :",eval_test[2]*100 , "%")
-
-'''val_score = []
-for k in range(1,100):
-    score = cross_val_score(model, dijon_train, label_test, cv=5).mean()
-    val_score.append(score)
-plt.plot(val_score)
-plt.savefig('imgs/toto.png')
-plt.close()'''
 
 #############################################################################
 plt.subplots(figsize=(18,9))
@@ -171,12 +144,13 @@ plt.savefig('imgs/2- history_train.png')
 plt.close()
 #############################################################################
 #treatment tests values
-#df_scaled = StandardScaler().fit(label_test)
-y_test = df_scaled.inverse_transform(label_test)
+label_test = np.repeat(label_test, dijon.shape[1], axis=-1)
+y_test = (df_scaled.inverse_transform(label_test)[:,0]).reshape(label_test.shape[0], 1)
 #test predict values
     ##removing normaling to plot graph
 test_predict=model.predict(dijon_test, batch_size=32, verbose = 2)
-test_predict = df_scaled.inverse_transform(test_predict)
+test_predict = np.repeat(test_predict, dijon.shape[1], axis=-1)
+test_predict = (df_scaled.inverse_transform(test_predict)[:,0]).reshape(test_predict.shape[0], 1)
 nb_elmnts_to_print = 30
 print('nb elements in test :',len(y_test))
 print('nb elements to plot :', nb_elmnts_to_print, 'premiers test éléments')
@@ -185,9 +159,9 @@ fig,ax=plt.subplots(figsize=(18,9))
 plt.ylabel("nb demandes d'intervention",fontsize=14)
 plt.xlabel("pas par date",fontsize=14)
 plt.title('prediction et valeurs réelles : ('+str(nb_elmnts_to_print)+' premiers éléments)')
-#printing first elements
-ax.plot(y_test[:,0][:nb_elmnts_to_print],'-o', color="blue", label="réel nbDi")
-ax.plot(test_predict[:,0][:nb_elmnts_to_print],'-o', color="green",label="prédiction nbDi")
+#plotting in truth : tests values 
+ax.plot(y_test[:nb_elmnts_to_print],'-o', color="blue", label="réel nbDi")
+ax.plot(test_predict[:nb_elmnts_to_print],'-o', color="green",label="prédiction nbDi")
 plt.legend()
 plt.savefig('imgs/3- predictOnTest.png')
 plt.close()
