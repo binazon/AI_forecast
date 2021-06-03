@@ -23,11 +23,6 @@ def create_lstm_dataset(df, look):
 
 
 
-
-
-
-
-
 #using data preprocessing - simple LSTM RNN Model
 # -- each next value is based on look_back previous values
 def prepare_data(timeseries_data, look_back):

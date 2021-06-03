@@ -30,7 +30,7 @@ scaler0To1 = MinMaxScaler(feature_range=(-1,1))
 #number of time steps
 look_back = 14
 #number days trainna to predict
-nb_days_predict = 15
+nb_days_predict = 45
 UNITS = 150
 epochs = 500
 batch_size =32
@@ -48,6 +48,7 @@ evenHidenDateDijonBDD=matchingDateStartEnd(dateBetweenStartEnd(data_array)[2], g
 print("nb line/distinct date after matching all days : {}".format(len(evenHidenDateDijonBDD)))
 #geenrating of the historical JSON and CSV files
 generateHistoryMeteo(data_array)
+#generateFutureMeteo(data_array, nb_days_predict)
 meteo = loadCsvFile("files/history/generated/CSV/historyMeteo"+str(data_array[0][1])+"_"+str(data_array[len(data_array)-1][1])+".csv")
 #creating the first data frame
 df=pd.DataFrame(evenHidenDateDijonBDD, columns=['date','nbDi'])
@@ -56,41 +57,38 @@ df['freq_nbDi'] = freq_nbDi(evenHidenDateDijonBDD)
 df['is_peak_nbDi'] = is_peak_nbDi(evenHidenDateDijonBDD)
 df['is_request_nbDi'] = is_request_nbDi(evenHidenDateDijonBDD)
 #adding meteo informations to our dataframe
-df['vitesse_vent_max'] = meteo['wind_spd']
-df['vitesse_rafale_vent'] = meteo['wind_gust_spd']
-df['direction_vent'] = meteo['wind_dir']
-df['couverture_nuageuse'] = meteo['clouds']
-df['precipitation'] = meteo['precip']
-df['temp_day'] = meteo['temp']
-df['min_temp_c'] = meteo['min_temp']
-df['max_temp_c'] = meteo['max_temp']
-df['pression'] = meteo['pres']
-df['humiditee_max'] = meteo['rh']
-df['neige'] = meteo['snow']
-df['radiation_solaire'] = meteo['t_solar_rad']
-df['rosee'] = meteo['dewpt']
+df['pression(mégabyte)'] = meteo['pres']
+df['pression_mer_moyenne(mégabyte)'] = meteo['slp']
+df['vitesse_vent_max(mètre_par_seconde)'] = meteo['wind_spd']
+df['vitesse_rafale_vent(mètre_par_seconde)'] = meteo['wind_gust_spd']
+df['temp_day(celcius)'] = meteo['temp']
+df['max_temp_c(celcius)'] = meteo['max_temp']
+df['min_temp_c(celcius)'] = meteo['min_temp']
+df['humiditee_max(pourcentage)'] = meteo['rh']
+df['rosee(celcius)'] = meteo['dewpt']
+df['couverture_nuageuse(pourcentage)'] = meteo['clouds']
+df['precipitation(millimètre)'] = meteo['precip']
+df['precipitation_accumule(millimètre)'] = meteo['precip_gpm']
+df['neige(millimètre)'] = meteo['snow']
+df['valeur_maximale_solaire(watt_par_mètre_carré)'] = meteo['max_dhi']
+df['indice_uv(watt_par_mètre_carré)'] = meteo['max_uv']
 #############################################################################
 dijon_timestamps=df[["date"]]
-#plotting and saving all nbDi by date
-plt.subplots(figsize=(24,11))
-plt.plot(*zip(*sorted(zip(dijon_timestamps.values.flatten(),df["nbDi"].astype(int)))), color='blue', label='nbDi')
-plt.xticks(df.index, dijon_timestamps.values.flatten(), rotation=90)
-plt.locator_params(axis='x', nbins=15)
-plt.xlabel("date",fontsize=14)
-plt.ylabel("nbDi",fontsize=14)
-plt.legend()
-plt.savefig('imgs/1- nbDiByDate.png')
-plt.close()
+#plotting and saving all nbDi and meteo datas by date
+for i in range(1, len(df.columns)):
+    plt.subplots(figsize=(24,11))
+    plt.plot(*zip(*sorted(zip(dijon_timestamps.values.flatten(),df[df.columns[i]].astype(float)))), color='blue', label=df.columns[i])
+    plt.xticks(df.index, dijon_timestamps.values.flatten(), rotation=90)
+    plt.locator_params(axis='x', nbins=15)
+    plt.xlabel("date",fontsize=14)
+    plt.ylabel(df.columns[i],fontsize=14)
+    plt.legend()
+    plt.savefig('imgs/input/1.'+str(i)+ '- '+df.columns[i]+'ByDate.png')
+    plt.close()
 #extends nbDi data with augmented datas : freq_nbDi, is_peak, ...
-'''dijon=df[["nbDi", "freq_nbDi", "is_peak_nbDi", "is_request_nbDi", 'vitesse_vent_max','vitesse_rafale_vent', 'direction_vent',
-'couverture_nuageuse', 'precipitation', 'temp_day', 'min_temp_c', 'max_temp_c', 'pression', 'humiditee_max', 'neige', 
-'radiation_solaire', 'rosee']].astype('float')'''
-
-
-dijon=df[["nbDi", "freq_nbDi"]].astype('float')
-
-#dijon=df[["nbDi"]].astype('float')
-
+dijon=df[["nbDi", "freq_nbDi", "is_peak_nbDi", "is_request_nbDi",'pression(mégabyte)' ,'pression_mer_moyenne(mégabyte)' ,'vitesse_vent_max(mètre_par_seconde)','vitesse_rafale_vent(mètre_par_seconde)', 'temp_day(celcius)',
+'max_temp_c(celcius)', 'min_temp_c(celcius)', 'humiditee_max(pourcentage)','rosee(celcius)', 'couverture_nuageuse(pourcentage)','precipitation(millimètre)', 'precipitation_accumule(millimètre)', 'neige(millimètre)',
+'valeur_maximale_solaire(watt_par_mètre_carré)','indice_uv(watt_par_mètre_carré)']].astype('float')
 #writing the dijon trnsformed file
 f1, f2, f3 = open("files/1- init_dataframe.txt", "w"), open("files/3- X_dataset.txt", "w"),open("files/4- Y_dataset.txt", "w")
 f1.write(str(dijon.head(50)))
@@ -130,7 +128,6 @@ eval_test = model.evaluate(dijon_test, label_test)
 print("taux de pertes -- test :",eval_test[0]*100 , "%")
 print("accuracy --test :",eval_test[1]*100 , "%")
 print("erreure absolue moyenne --test :",eval_test[2]*100 , "%")
-
 #############################################################################
 plt.subplots(figsize=(18,9))
 plt.plot(history.history['loss'], label = 'train_losses')
@@ -140,7 +137,7 @@ plt.plot(history.history['val_acc'], label='val_accuracy')
 plt.xlabel("epoch",fontsize=14)
 plt.ylabel("validation and train values",fontsize=14)
 plt.legend()
-plt.savefig('imgs/2- history_train.png')
+plt.savefig('imgs/output/2- history_train.png')
 plt.close()
 #############################################################################
 #treatment tests values
@@ -163,7 +160,7 @@ plt.title('prediction et valeurs réelles : ('+str(nb_elmnts_to_print)+' premier
 ax.plot(y_test[:nb_elmnts_to_print],'-o', color="blue", label="réel nbDi")
 ax.plot(test_predict[:nb_elmnts_to_print],'-o', color="green",label="prédiction nbDi")
 plt.legend()
-plt.savefig('imgs/3- predictOnTest.png')
+plt.savefig('imgs/output/3- predictOnTest.png')
 plt.close()
 #############################################################################
 #mesuring performances of the model
@@ -187,7 +184,7 @@ nb_days_predict), dtype='datetime64[D]').astype(str)
 plt.plot(*zip(*sorted(zip(dijon_timestamps,dijon_labels))), color='blue', label='truth ' + str('in 62 last days'))
 plt.plot(*zip(*sorted(zip(dijon_dates, feature))), 'b:o', color='blue', label=str(nb_days_predict) + ' feature(s)')
 plt.legend()
-plt.savefig('imgs/4- last '+str(last_data)+' jours + predict_'+str(nb_days_predict)+'_next_days.png')
+plt.savefig('imgs/output/4- last '+str(last_data)+' jours + predict_'+str(nb_days_predict)+'_next_days.png')
 plt.close()
 #############################################################################
 plt.subplots(figsize=(24,11))
@@ -197,7 +194,7 @@ plt.title(str(nb_days_predict) + ' next predictions values (bar chart)')
 plt.xlabel("date de demande d'intervention",fontsize=14)
 plt.ylabel("nombre de demande d'intervention",fontsize=14)
 plt.legend()
-plt.savefig('imgs/5- predict_'+str(nb_days_predict)+'_next_days.png')
+plt.savefig('imgs/output/5- predict_'+str(nb_days_predict)+'_next_days.png')
 plt.close()
 #############################################################################
 print(pd.DataFrame({'Next dates':dijon_dates,'nbDi output':feature}))
