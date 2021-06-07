@@ -2,6 +2,7 @@ import os.path
 from typing import Dict, List
 import pandas as pd
 import numpy as np
+import json
 import unidecode, re
 from sklearn.preprocessing import *
 from datetime import *
@@ -13,7 +14,7 @@ def loadCsvFile(path) -> pd.DataFrame:
 def sortDijonExtractByDate(data) -> List:
     return np.array(data.sort_values('date'))
 #from datetime to date
-def datetime_to_date(datetimeArray) -> List:
+def datetime_array_to_date(datetimeArray) -> List:
     for i in datetimeArray:
         i[1]=i[1].split(" ")[0]
     return datetimeArray

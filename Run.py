@@ -30,7 +30,7 @@ scaler0To1 = MinMaxScaler(feature_range=(-1,1))
 #number of time steps
 look_back = 14
 #number days trainna to predict
-nb_days_predict = 45
+nb_days_predict = 15
 UNITS = 150
 epochs = 500
 batch_size =32
@@ -38,7 +38,7 @@ test_size = 0.2
 #######################################RUNNING#######################################################################
 data_array=sortDijonExtractByDate(loadCsvFile('database/dijonData_extract_19_04_2021.csv'))
 print("nb line in dijon database --csv file-- : {}".format(len(data_array)))
-data_array = datetime_to_date(data_array)
+data_array = datetime_array_to_date(data_array)
 groupByDateAndComments(saltingComments(data_array))
 groupByDateAndNbDi=groupingByDateAndDI(data_array)
 nbDiByDateArray=np.array(list(groupByDateAndNbDi.items()))
@@ -48,7 +48,7 @@ evenHidenDateDijonBDD=matchingDateStartEnd(dateBetweenStartEnd(data_array)[2], g
 print("nb line/distinct date after matching all days : {}".format(len(evenHidenDateDijonBDD)))
 #geenrating of the historical JSON and CSV files
 generateHistoryMeteo(data_array)
-#generateFutureMeteo(data_array, nb_days_predict)
+generateFutureMeteo(data_array, nb_days_predict)
 meteo = loadCsvFile("files/history/generated/CSV/historyMeteo"+str(data_array[0][1])+"_"+str(data_array[len(data_array)-1][1])+".csv")
 #creating the first data frame
 df=pd.DataFrame(evenHidenDateDijonBDD, columns=['date','nbDi'])
