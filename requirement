@@ -1,5 +1,5 @@
 #install all libraries you need for this project there.
-
+Deprecated==1.2.12
 json5==0.9.5
 jsonschema==3.2.0
 Keras==2.4.3

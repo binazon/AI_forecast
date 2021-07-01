@@ -1,7 +1,6 @@
 import os,sys
 #add parent folder path to list of sys.path
 sys.path.insert(1, os.path.abspath('.'))
-import psycopg2
 import requests
 from datetime import *
 from connect_database.ConnectPostGreSQL import *
@@ -13,7 +12,7 @@ and is executed each day at 00 o'clock
 
 city, key, units, today = "Dijon,FR", "88d8939072279f6dd1283ee42e480c19", "metric", date.today().strftime("%Y-%m-%d")
 apiCurrentMeteo, conn = "https://api.openweathermap.org/data/2.5/weather?q="+str(city)+"&APPID="+str(key)+"&units="+str(units), None
-user_data, pass_data, db_data, host_data, port_data = "dme", "dme", "dme_ai", "frpardeml1l", "5432"
+user_data, pass_data, db_data, host_data, port_data = "dme", "dme", "dme_ai", "localhost", "15432"
 
 #feed the database with the current day meteo informations
 try:
@@ -30,7 +29,7 @@ try:
         print(cursor.rowcount, "new line inserted succesfully into meteo table")
     else:
         print("This date and meteo informations already exist in the database")
-except(Exception, psycopg2.Error) as error:
+except Exception as error:
     print("Error fetching data from postgreSQL table", error)
 finally:
     if conn is not None:

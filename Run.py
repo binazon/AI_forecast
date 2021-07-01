@@ -1,19 +1,17 @@
 #######################################AUTORS#############################################################################
 # Main file
 #######################################IMPORTING###########################################################################
-from numbers import Number
-from typing import List
 import numpy as np
-import tensorflow as tf
 import pandas as pd
 import matplotlib.pyplot as plt
-from CsvManager import *
+from Preprocessing import *
 from Prediction import *
 from ErrorsPrediction import *
 from BuildingModel import * 
 from DataAugmentate import *
 from DataSetForModel import *
-from Meteo import *
+from MeteoFuture import *
+from RequestFromDataBase import *
 from numpy import argmax
 from datetime import *
 from tensorflow.keras import *
@@ -29,55 +27,34 @@ from sklearn.feature_selection import *
 scaler0To1 = MinMaxScaler(feature_range=(-1,1))
 #number of time steps
 look_back = 14
-#number days trainna to predict
-nb_days_predict = 15
-UNITS = 150
-epochs = 500
-batch_size =32
-test_size = 0.2
+nb_days_predict, UNITS, epochs, batch_size, test_size = 15, 150, 500, 32, 0.2
 #######################################RUNNING#######################################################################
-data_array=sortDijonExtractByDate(loadCsvFile('database/dijonData_extract_19_04_2021.csv'))
-print("nb line in dijon database --csv file-- : {}".format(len(data_array)))
-data_array = datetime_array_to_date(data_array)
-groupByDateAndComments(saltingComments(data_array))
-groupByDateAndNbDi=groupingByDateAndDI(data_array)
-nbDiByDateArray=np.array(list(groupByDateAndNbDi.items()))
-print("nb line/distinct date in dijon database base : {}".format(len(nbDiByDateArray)))
-print('starting date in bdd : ' + str(dateBetweenStartEnd(data_array)[0]) + ', ending date : ' + str(dateBetweenStartEnd(data_array)[1]))
-evenHidenDateDijonBDD=matchingDateStartEnd(dateBetweenStartEnd(data_array)[2], groupByDateAndNbDi)
-print("nb line/distinct date after matching all days : {}".format(len(evenHidenDateDijonBDD)))
-#geenrating of the historical JSON and CSV files
-generateHistoryMeteo(data_array)
-generateFutureMeteo(data_array, nb_days_predict)
-meteo = loadCsvFile("files/history/generated/CSV/historyMeteo"+str(data_array[0][1])+"_"+str(data_array[len(data_array)-1][1])+".csv")
+dateNbDiTupleArray, dateMeteoTupleArray = requestDiByDate(), requestMeteoByDate()
+print("nb line/distinct date in dijon database base : {}\nstart analysing from : {}, to : {} last date in the database".format(len(dateNbDiTupleArray), str(dateBetweenStartEnd(dateNbDiTupleArray)[0])), str(dateBetweenStartEnd(dateNbDiTupleArray)[1]))
+evenHidenDay=matchingDateStartEnd(dateBetweenStartEnd(dateNbDiTupleArray)[2], dict(dateNbDiTupleArray))
+print("nb line/distinct date after matching days without intervention : {}".format(len(evenHidenDay)))
 #creating the first data frame
-df=pd.DataFrame(evenHidenDateDijonBDD, columns=['date','nbDi'])
+df=pd.DataFrame(evenHidenDay, columns=['date','nbDi'])
 #adding some informations to our dataframe
-df['freq_nbDi'] = freq_nbDi(evenHidenDateDijonBDD)
-df['is_peak_nbDi'] = is_peak_nbDi(evenHidenDateDijonBDD)
-df['is_request_nbDi'] = is_request_nbDi(evenHidenDateDijonBDD)
+df['freq_nbDi'] = freq_nbDi(evenHidenDay)
+df['is_peak_nbDi'] = is_peak_nbDi(evenHidenDay)
+df['is_request_nbDi'] = is_request_nbDi(evenHidenDay)
 #adding meteo informations to our dataframe
-df['pression(mégabyte)'] = meteo['pres']
-df['pression_mer_moyenne(mégabyte)'] = meteo['slp']
-df['vitesse_vent_max(mètre_par_seconde)'] = meteo['wind_spd']
-df['vitesse_rafale_vent(mètre_par_seconde)'] = meteo['wind_gust_spd']
-df['temp_day(celcius)'] = meteo['temp']
-df['max_temp_c(celcius)'] = meteo['max_temp']
-df['min_temp_c(celcius)'] = meteo['min_temp']
-df['humiditee_max(pourcentage)'] = meteo['rh']
-df['rosee(celcius)'] = meteo['dewpt']
-df['couverture_nuageuse(pourcentage)'] = meteo['clouds']
-df['precipitation(millimètre)'] = meteo['precip']
-df['precipitation_accumule(millimètre)'] = meteo['precip_gpm']
-df['neige(millimètre)'] = meteo['snow']
-df['valeur_maximale_solaire(watt_par_mètre_carré)'] = meteo['max_dhi']
-df['indice_uv(watt_par_mètre_carré)'] = meteo['max_uv']
+df['mto_temp(celcius)'] = [i[1] for i in dateMeteoTupleArray]
+df['mto_temp_min(celcius)'] = [i[2] for i in dateMeteoTupleArray]
+df['mto_temp_max(celcius)'] = [i[3] for i in dateMeteoTupleArray]
+df['mto_pressure(hPa)'] = [i[4] for i in dateMeteoTupleArray]
+df['mto_humidity(%)'] = [i[5] for i in dateMeteoTupleArray]
+df['mto_visibility(km)'] = [i[6] for i in dateMeteoTupleArray]
+df['mto_wind_speed(m/s)'] = [i[7] for i in dateMeteoTupleArray]
+df['mto_clouds(%)'] = [i[8] for i in dateMeteoTupleArray]
 #############################################################################
 dijon_timestamps=df[["date"]]
 #plotting and saving all nbDi and meteo datas by date
 for i in range(1, len(df.columns)):
     plt.subplots(figsize=(24,11))
-    plt.plot(*zip(*sorted(zip(dijon_timestamps.values.flatten(),df[df.columns[i]].astype(float)))), color='blue', label=df.columns[i])
+    plt.plot(*zip(*sorted(zip(dijon_timestamps.values.flatten(),df[df.columns[i]].astype(float)))), 
+    color='blue', label=df.columns[i])
     plt.xticks(df.index, dijon_timestamps.values.flatten(), rotation=90)
     plt.locator_params(axis='x', nbins=15)
     plt.xlabel("date",fontsize=14)
@@ -86,9 +63,9 @@ for i in range(1, len(df.columns)):
     plt.savefig('imgs/input/1.'+str(i)+ '- '+df.columns[i]+'ByDate.png')
     plt.close()
 #extends nbDi data with augmented datas : freq_nbDi, is_peak, ...
-dijon=df[["nbDi", "freq_nbDi", "is_peak_nbDi", "is_request_nbDi",'pression(mégabyte)' ,'pression_mer_moyenne(mégabyte)' ,'vitesse_vent_max(mètre_par_seconde)','vitesse_rafale_vent(mètre_par_seconde)', 'temp_day(celcius)',
-'max_temp_c(celcius)', 'min_temp_c(celcius)', 'humiditee_max(pourcentage)','rosee(celcius)', 'couverture_nuageuse(pourcentage)','precipitation(millimètre)', 'precipitation_accumule(millimètre)', 'neige(millimètre)',
-'valeur_maximale_solaire(watt_par_mètre_carré)','indice_uv(watt_par_mètre_carré)']].astype('float')
+dijon=df[["nbDi", "freq_nbDi", "is_peak_nbDi", "is_request_nbDi",'mto_temp(celcius)' ,'mto_temp_min(celcius)' ,
+'mto_temp_max(celcius)','mto_pressure(hPa)', 'mto_humidity(%)', 'mto_visibility(km)', 'mto_wind_speed(m/s)', 
+'mto_clouds(%)']].astype('float')
 #writing the dijon trnsformed file
 f1, f2, f3 = open("files/1- init_dataframe.txt", "w"), open("files/3- X_dataset.txt", "w"),open("files/4- Y_dataset.txt", "w")
 f1.write(str(dijon.head(50)))
@@ -117,7 +94,8 @@ es = EarlyStopping(monitor='val_loss', patience=6)
 model = buildModel(UNITS, dijon_train, label_train)
 #20% of validation data are used on the train dataset
 #history = model.fit(dijon_train, label_train, verbose=2, validation_split=0.2, epochs=epochs, shuffle=False, batch_size=batch_size, callbacks=[es])
-history = model.fit(dijon_train, label_train, verbose=2, validation_split=0.2, epochs=epochs, shuffle=False, batch_size=batch_size)
+history = model.fit(dijon_train, label_train, verbose=2, validation_split=0.2, epochs=epochs, 
+shuffle=False, batch_size=batch_size)
 #evaluation in train dataset
 eval_train = model.evaluate(dijon_train, label_train)
 print("taux de pertes -- train :",eval_train[0]*100 , "%")
