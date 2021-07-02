@@ -80,8 +80,11 @@ def matchingDateStartEnd(unionDijon, nbDiByDateJson) -> List:
     return np.array(list(dijonBddJson.items()))
 
 #date bettween start en end of all DI - even date not in bdd. 
-def dateBetweenStartEnd(_array) -> List:
-    return _array[0],_array[len(_array)-1], np.array(pd.date_range(_array[0],_array[len(_array)-1])).astype(str)
+def dateBetweenStartEnd(_array):
+    if(type(_array[0]) is tuple):
+        #from array of tuple to array of str
+        _array = [i[0] for i in _array]
+    return _array[0],_array[len(_array)-1], np.array(pd.date_range(_array[0],_array[len(_array)-1]), dtype='datetime64[D]').astype(str) 
 
 #get list of date between date and nb following days
 def listDatesBetweenDateAndNumber(date, number) -> List:

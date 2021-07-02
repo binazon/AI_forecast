@@ -1,7 +1,15 @@
-import math
+import os
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import *
+
+rootOutputFile = "files/output/"
+
+'''
+generating folders root path
+'''
+if not os.path.exists(rootOutputFile):os.makedirs(rootOutputFile)
+
 
 #creating the lstm dataset
 def create_lstm_dataset(df, look):
@@ -11,7 +19,7 @@ def create_lstm_dataset(df, look):
     transformed_dataset = scaler.transform(df.values)
     transformed_df = pd.DataFrame(data = transformed_dataset, index=df.index)
     #writing the dijon trnsformed file
-    f = open("files/2- dijon_df_transformed.txt", "w")
+    f = open(rootOutputFile+"2- dijon_df_transformed.txt", "w")
     f.write(str(transformed_df.head(50)))
     f.close()
     train = np.empty([number_of_rows - look, look, number_of_features], dtype='float')

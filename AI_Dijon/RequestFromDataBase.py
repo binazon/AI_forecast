@@ -22,12 +22,6 @@ def requestDiByDate() -> List:
         '''
         cursor.execute("select * from di_by_date")
         diByDateInBddArray = cursor.fetchall()
-        datesInBdd = [i[0] for i in diByDateInBddArray]
-        alldatesFromStartToEnd = dateBetweenStartEnd(datesInBdd)[2]
-        for i in alldatesFromStartToEnd:
-            if(i not in datesInBdd):diByDateInBddArray.append((i,0))
-        #sorting by date column of the tuple array
-        diByDateInBddArray = sorted(diByDateInBddArray, key=lambda x:x[0])
     except Exception as error:
         print('Error fetching data from postgreSQL table', error)
     finally:

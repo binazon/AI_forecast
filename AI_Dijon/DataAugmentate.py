@@ -1,6 +1,6 @@
 from typing import List
 #######################################METHODS#####################################################################
-#augmenting the origin nbDi datas
+#augmenting the nbDi datas
 #getting frequence of nbDi in nbDi column
 def freq_nbDi(data) -> List:
     tab = []
@@ -9,6 +9,7 @@ def freq_nbDi(data) -> List:
         tab.append(data[:,1][0:pos].tolist().count(i))
         pos = pos + 1
     return tab
+
 #getting all peak all nbDi
 def is_peak_nbDi(data) -> List:
     peak = []
@@ -18,6 +19,7 @@ def is_peak_nbDi(data) -> List:
         else:
             peak.append(0)
     return peak
+
 #getting all ways without request of intervention
 def is_request_nbDi(data) -> List : 
     request = []

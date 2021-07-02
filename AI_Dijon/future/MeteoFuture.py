@@ -12,7 +12,7 @@ apiFutureMeteo = "https://api.openweathermap.org/data/2.5/onecall?lat={}&lon={}&
 rootFutureJSON, rootFutureCSV = "files/future/generated/JSON", "files/future/generated/CSV"
 
 '''
-creating generating files repositories
+generating folders root path
 '''
 if not os.path.exists(rootFutureJSON):os.makedirs(rootFutureJSON)
 if not os.path.exists(rootFutureCSV):os.makedirs(rootFutureCSV)
