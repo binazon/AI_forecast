@@ -19,26 +19,31 @@ from generate_graph.GenerateGraph import *
 #number of time steps
 LOOK_BACK = 7
 NB_DAYS_PREDICTED, UNITS, EPOCHS, BATCH_SIZE, TEST_SIZE, SHUFFLE = 15, 150, 500, 32, 0.2, False
-rootOutputFile = "files/output/"
-
+rootOutputFile= "files/output/"
 '''
 generating folders root path
 '''
 if not os.path.exists(rootOutputFile):os.makedirs(rootOutputFile)
-
 dateNbDiTupleArray, dateMeteoTupleArray = requestDiByDate(), requestMeteoByDate()
 addingHidenDay=matchingDateStartEnd(dateBetweenStartEnd(dateNbDiTupleArray)[2], dict(dateNbDiTupleArray))
-print("start analysing from : {} to : {} last date in the database\ntotal number of days : {} days".format(
+print("start analysing from {} to {} : the last date in the potgresql bdd\ntotal number of days : {} days".format(
 dateBetweenStartEnd(dateNbDiTupleArray)[0], dateBetweenStartEnd(dateNbDiTupleArray)[1], len(addingHidenDay)))
-print("number of day the interventions are requested : {} days".format(len(dateNbDiTupleArray)))
+print("number of days in the period interventions are requested : {} days".format(len(dateNbDiTupleArray)))
 df=pd.DataFrame(addingHidenDay, columns=['date','nbDi'])
 #adding frequence, peak and boolean request to the dataframe using nbDi
 df['freq_nbDi'], df['is_peak_nbDi'], df['is_request_nbDi'] = freq_nbDi(addingHidenDay), is_peak_nbDi(addingHidenDay), is_request_nbDi(addingHidenDay)
-#adding meteo datas to the dataframe
+'''
+adding meteo datas to the dataframe
+'''
 df['mto_temp(celcius)'], df['mto_temp_min(celcius)'] = [i[1] for i in dateMeteoTupleArray], [i[2] for i in dateMeteoTupleArray]
 df['mto_temp_max(celcius)'], df['mto_pressure(hPa)']= [i[3] for i in dateMeteoTupleArray], [i[4] for i in dateMeteoTupleArray]
 df['mto_humidity(%)'], df['mto_visibility(km)'] = [i[5] for i in dateMeteoTupleArray], [i[6] for i in dateMeteoTupleArray]
 df['mto_wind_speed(m s)'], df['mto_clouds(%)'] = [i[7] for i in dateMeteoTupleArray], [i[8] for i in dateMeteoTupleArray]
+'''
+generating future meteo files
+'''
+meteoFuture()
+futureMeteo = loadCsvFile("files/future/generated/CSV/futureMeteoByDate.csv")
 ####################################### GENERATING OUPUT FILES #####################################################################
 '''
 saving in imgs folder the graphs nbDi or meteo by date
@@ -61,9 +66,7 @@ try:
     file2.write(str(X.shape)+'\n'+str(X[0:50]))
     file3.write(str(Y.shape)+'\n'+str(Y[-50:]))
 finally:
-    file1.close()
-    file2.close()
-    file3.close()
+    for i in [file1, file2, file3]:i.close()
 '''
 spliting data_set and writting in output
 '''
@@ -76,10 +79,7 @@ try:
     file3.write(str(dijon_test.shape)+'\n'+str(dijon_test[0:50]))
     file4.write(str(label_test.shape)+'\n'+str(label_test[0:50]))
 finally:
-    file1.close()
-    file2.close()
-    file3.close()
-    file4.close()
+    for i in [file1, file2, file3, file4]:i.close()
 '''
 EarlyStopping to prevent the overfitting on the losses and building the RNN model
 '''
@@ -103,7 +103,7 @@ y_test = (df_scaled.inverse_transform(label_test)[:,0]).reshape(label_test.shape
 test_predict=model.predict(dijon_test, batch_size=32, verbose = 2)
 test_predict = np.repeat(test_predict, dijon.shape[1], axis=-1)
 test_predict = (df_scaled.inverse_transform(test_predict)[:,0]).reshape(test_predict.shape[0], 1)
-print('nb elements in test :',len(y_test) + '\n','nb elements to plot :', nb_elmnts_to_print, 'premiers test éléments')
+print('nb elements in test :',len(y_test) , '\nnb elements to plot :', nb_elmnts_to_print, 'premiers test éléments')
 '''
 plotting truth and nbDi prediction
 '''
@@ -115,11 +115,11 @@ generating_errors(y_test, test_predict, nb_elmnts_to_print)
 '''
 predict feature : (nb_days_predict) days
 '''
-feature, last_data = np.rint(predictNextDays(model, dijon, NB_DAYS_PREDICTED, df_scaled, LOOK_BACK)), 62
-dijon_timestamps = np.array(pd.DataFrame(df[["date"]]).tail(last_data)).flatten()
+feature, LAST_NB_DATA = np.rint(predictNextDays(model, dijon, NB_DAYS_PREDICTED, df_scaled, LOOK_BACK, futureMeteo)), 62
+dijon_timestamps = np.array(pd.DataFrame(df[["date"]]).tail(LAST_NB_DATA)).flatten()
 fromDateToNumberAfter = listDatesBetweenDateAndNumber(date.fromisoformat(dijon_timestamps[len(dijon_timestamps)-1]), NB_DAYS_PREDICTED)
 dijon_dates = np.array(fromDateToNumberAfter, dtype='datetime64[D]').astype(str)
-graphPredictNextDays(last_data, NB_DAYS_PREDICTED, dijon, feature, fromDateToNumberAfter, dijon_timestamps, dijon_dates)
+graphPredictNextDays(LAST_NB_DATA, NB_DAYS_PREDICTED, dijon, feature, fromDateToNumberAfter, dijon_timestamps, dijon_dates)
 '''
 graph with just feature informations
 '''

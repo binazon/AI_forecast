@@ -3,10 +3,9 @@ import numpy as np
 import pandas as pd
 #######################################METHODS#####################################################################
 #predict data in the next nbdays
-def predictNextDays(model, array_enter, nbdays, scaled, look_back) -> List:
+def predictNextDays(model, array_enter, nbdays, scaled, look_back, futureMeteo) -> List:
     x_input = np.array(pd.DataFrame(array_enter).tail(look_back), dtype='float')
-    temp_input = list(x_input)
-    lst_output = [x_input[len(x_input)-1]]
+    temp_input, lst_output = list(x_input), [x_input[len(x_input)-1]]
     i = 0
     while(i<nbdays):
         if(len(temp_input) > look_back):

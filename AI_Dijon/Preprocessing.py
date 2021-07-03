@@ -8,7 +8,6 @@ from datetime import *
 #######################################METHODS#####################################################################
 
 #loading csv file
-@deprecated
 def loadCsvFile(path) -> pd.DataFrame:
     return pd.read_csv(path, encoding='utf8')
 
@@ -25,6 +24,7 @@ def datetime_array_to_date(datetimeArray) -> List:
     return datetimeArray
 
 #salting comments : removing spacial characters(without spaces) and accents and one hot comments
+@deprecated
 def saltingComments(array_csv) -> List:
     array_csv_copy=array_csv.copy()
     for i in range(0,len(array_csv_copy[:,2])):
@@ -41,6 +41,7 @@ def saltingComments(array_csv) -> List:
     return array_csv_copy
 
 #mapping by nbDi and type/comments
+@deprecated
 def groupByDateAndComments(array_csv) -> Dict:
     dict_out = {}
     nbDi = 1

@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-pathInput, pathOutput = "imgs/input/", "imgs/output/"
+pathInput, pathOutput = "files/imgs/input/", "files/imgs/output/"
 '''
 generating folders root path
 '''
