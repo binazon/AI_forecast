@@ -52,26 +52,33 @@ graphNbDiMeteoByDate(df)
 '''
 creating the new dijon dataframe
 '''
-dijon=df[["nbDi", "freq_nbDi", "is_peak_nbDi", "is_request_nbDi",'mto_temp(celcius)' ,'mto_temp_min(celcius)',
+'''dijon=df[["nbDi", "freq_nbDi", "is_peak_nbDi", "is_request_nbDi",'mto_temp(celcius)' ,'mto_temp_min(celcius)',
 'mto_temp_max(celcius)','mto_pressure(hPa)', 'mto_humidity(%)', 'mto_visibility(km)', 'mto_wind_speed(m s)', 
-'mto_clouds(%)']].astype('float')
-
+'mto_clouds(%)']].astype('float')'''
+dijon=df[["nbDi"]].astype('float')
+'''
+creating the dataset
+'''
+df_scaled, X, Y = create_lstm_dataset(dijon, LOOK_BACK)
 '''
 writing output files -- dijon transformed file
 '''
 try:
     file1, file2, file3 = open(rootOutputFile+"1- init_dataframe.txt", "w"), open(rootOutputFile+"3- X_dataset.txt", "w"),open(rootOutputFile+"4- Y_dataset.txt", "w")
     file1.write(str(dijon.head(50)))
-    X, Y, df_scaled = create_lstm_dataset(dijon, LOOK_BACK)
     file2.write(str(X.shape)+'\n'+str(X[0:50]))
     file3.write(str(Y.shape)+'\n'+str(Y[-50:]))
 finally:
     for i in [file1, file2, file3]:i.close()
 '''
-spliting data_set and writting in output
+spliting data_set
+'''
+dijon_train, dijon_test, label_train, label_test=model_selection.train_test_split(X, Y, test_size=TEST_SIZE, shuffle=SHUFFLE)
+'''
+writting in the output files
 '''
 try:
-    dijon_train, dijon_test, label_train, label_test=model_selection.train_test_split(X, Y, test_size=TEST_SIZE, shuffle=SHUFFLE)
+    
     file1, file2 = open(rootOutputFile+"5- dijon_train.txt", "w"),open(rootOutputFile+"6- label_train.txt", "w")
     file3, file4 = open(rootOutputFile+"7- dijon_test.txt", "w"),open(rootOutputFile+"8- label_test.txt", "w")
     file1.write(str(dijon_train.shape)+'\n'+str(dijon_train[0:50])) 
@@ -83,7 +90,7 @@ finally:
 '''
 EarlyStopping to prevent the overfitting on the losses and building the RNN model
 '''
-es, model = EarlyStopping(monitor='val_loss', patience=6), buildModel(UNITS, dijon_train, label_train)
+es, model = EarlyStopping(monitor='val_loss', patience=6), buildModel(UNITS, dijon, LOOK_BACK)
 history = model.fit(dijon_train, label_train, verbose=2, validation_split=0.2, epochs=EPOCHS, shuffle=False,
  batch_size=BATCH_SIZE, callbacks=[es])
 '''

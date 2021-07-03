@@ -19,7 +19,9 @@ def predictNextDays(model, array_enter, nbdays, scaled, look_back, futureMeteo) 
         else:
             x_input = x_input.reshape(1,look_back, x_input.shape[1])
             yhat = model.predict(x_input, batch_size=32, verbose = 2)
-            yhat = np.repeat(yhat, array_enter.shape[1], axis=-1)
+            #yhat = np.repeat(yhat, array_enter.shape[1], axis=-1)
+            for p in futureMeteo:
+                pass
             yhat = scaled.inverse_transform(yhat)[:,0]
             temp_input.append(yhat[0])
         lst_output.append(max(0,yhat[0][0]))
