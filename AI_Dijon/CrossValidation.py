@@ -3,14 +3,13 @@ from sklearn.model_selection import *
 from sklearn.neighbors import *
 import matplotlib.pyplot as plt
 
-model = KNeighborsClassifier()
-k = np.arange(1, 50)
-
 '''
 search model's input hyperparameter with validation_curve
 '''
 def getNeighborsGraphStats(x_train, y_train):
-    train_score, val_score = validation_curve(model,x_train, y_train, 'n_neighbors', k, cv=5)
+    model = KNeighborsClassifier()
+    k = np.arange(1, 50)
+    train_score, val_score = validation_curve(model,x_train, y_train, 'n_neighbors', k, cv=3)
     plt.plot(k, val_score.mean(axis=1), label='validation')
     plt.plot(k, train_score.mean(axis=1), label='validation')
     

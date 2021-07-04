@@ -38,7 +38,7 @@ df['mto_temp_max(celcius)'], df['mto_pressure(hPa)']= [i[3] for i in dateMeteoTu
 df['mto_humidity(%)'], df['mto_visibility(km)'] = [i[5] for i in dateMeteoTupleArray], [i[6] for i in dateMeteoTupleArray]
 df['mto_wind_speed(m s)'], df['mto_clouds(%)'] = [i[7] for i in dateMeteoTupleArray], [i[8] for i in dateMeteoTupleArray]
 '''
-generating future meteo files
+generating future meteo files and load CSV future_meteo file 
 '''
 meteoFuture()
 futureMeteo = loadCsvFile("files/future/generated/CSV/futureMeteoByDate.csv")
