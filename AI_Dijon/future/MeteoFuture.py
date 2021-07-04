@@ -1,4 +1,5 @@
 import os
+import json
 import pandas as pd
 import requests
 from datetime import *
@@ -30,8 +31,8 @@ def meteoFuture():
             '''
             checking the array from second element cause first one is about current day
             '''
-            result, meteoChecked = response.json().get("daily")[1:7], []
-            jsonFuture.write(str({"daily" : result}).replace("'", "\""))
+            result, meteoChecked = response.json().get("daily")[1:len(response.json().get("daily"))], []
+            jsonFuture.write(str(json.dumps({"daily" : result}, indent=4, sort_keys=False)).replace("'", "\""))
             #write in file relative to specified meteo infos
             for i in result:
                 meteoChecked.append({
@@ -41,10 +42,11 @@ def meteoFuture():
                     "mto_temp_max" : i.get("temp")['max'],
                     "mto_pressure" : i.get("pressure"),
                     "mto_humidity" : i.get("humidity"),
+                    "mto_visibility" : 0,
                     "mto_wind_speed" : i.get("wind_speed"),
                     "mto_couds" : i.get("clouds")
                 })
-            jsoncheckedFuture.write(str(meteoChecked).replace("'", "\""))
+            jsoncheckedFuture.write(str(json.dumps(meteoChecked, indent=4, sort_keys=False)).replace("'", "\""))
         else:
             print("error occurred when calling the openweathermap meteo API")
     except Exception as error:

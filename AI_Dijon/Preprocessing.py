@@ -6,8 +6,9 @@ from deprecated import deprecated
 from sklearn.preprocessing import *
 from datetime import *
 #######################################METHODS#####################################################################
-
-#loading csv file
+'''
+loading csv file
+'''
 def loadCsvFile(path) -> pd.DataFrame:
     return pd.read_csv(path, encoding='utf8')
 
@@ -58,7 +59,9 @@ def groupByDateAndComments(array_csv) -> Dict:
     #print(json.dumps(dict_out, indent=4, sort_keys=True))
     return dict_out
 
-#grouping by date and count nb DI
+'''
+grouping by date and count nb DI
+'''
 @deprecated
 def groupingByDateAndDI(array) -> Dict:
     nbDiByDateDict={}
@@ -70,24 +73,27 @@ def groupingByDateAndDI(array) -> Dict:
             nbDiByDateDict[array[i][1]] = nbDi
     return nbDiByDateDict
 
-#matching dijon date with other date in start and end
+'''
+matching dijon date with other date in start and end
+'''
 def matchingDateStartEnd(unionDijon, nbDiByDateJson) -> List:
     dijonBddJson={}
     for union in unionDijon:
-        if(union in nbDiByDateJson.keys()):
-            dijonBddJson[union]=nbDiByDateJson.get(union)
-        else:
-            dijonBddJson[union]=0
+        dijonBddJson[union] = nbDiByDateJson.get(union) if(union in nbDiByDateJson.keys()) else 0
     return np.array(list(dijonBddJson.items()))
 
-#date bettween start en end of all DI - even date not in bdd. 
+'''
+date bettween start en end of all DI - even date not in bdd.
+'''
 def dateBetweenStartEnd(_array):
     if(type(_array[0]) is tuple):
         #from array of tuple to array of str
         _array = [i[0] for i in _array]
     return _array[0],_array[len(_array)-1], np.array(pd.date_range(_array[0],_array[len(_array)-1]), dtype='datetime64[D]').astype(str) 
 
-#get list of date between date and nb following days
+'''
+get list of date between date and nb following days
+'''
 def listDatesBetweenDateAndNumber(date, number) -> List:
     start = date + timedelta(days=1)
     end = date + timedelta(days=number)

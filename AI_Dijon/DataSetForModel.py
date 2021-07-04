@@ -18,7 +18,7 @@ def create_lstm_dataset(df, look):
         transformed_dataset = scaler.transform(df.values)
         transformed_df = pd.DataFrame(data = transformed_dataset, index=df.index)
         #writing the dijon trnsformed file
-        f = open(rootOutputFile+"2- dijon_df_transformed.txt", "w")
+        f = open(rootOutputFile+"2- dijon_df_transformed.txt", "w+")
         f.write(str(transformed_df.head(50)))
         train = np.empty([number_of_rows - look, look, number_of_features], dtype='float')
         label = np.empty([number_of_rows - look, 1])
