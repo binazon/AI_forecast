@@ -55,13 +55,13 @@ dijon=df[["nbDi", 'mto_temp(celcius)' ,'mto_temp_min(celcius)',
 'mto_clouds(%)']].astype('float')
 #dijon=df[["nbDi"]].astype('float')
 '''
-building the RNN model
-'''
-model = buildModel(UNITS, dijon, LOOK_BACK)
-'''
 creating the dataset
 '''
 df_scaled, X, Y = create_lstm_dataset(dijon, LOOK_BACK)
+'''
+building the RNN model
+'''
+model = buildModel(UNITS, X, Y)
 '''
 writing output files -- dijon transformed file
 '''
@@ -95,8 +95,8 @@ finally:
 '''
 EarlyStopping to prevent the overfitting on the losses
 '''
-es= EarlyStopping(monitor='val_loss', patience=6), 
-history = model.fit(dijon_train, label_train, verbose=2, validation_split=0.2, epochs=EPOCHS, shuffle=False,
+es= EarlyStopping(monitor='val_loss', verbose=1, patience=20), 
+history = model.fit(dijon_train, label_train, verbose=1, validation_split=0.2, epochs=EPOCHS, shuffle=False,
  batch_size=BATCH_SIZE, callbacks=[es])
 '''
 getting the RNN model result
@@ -118,7 +118,7 @@ y_test = (df_scaled.inverse_transform(label_test)[:,0]).reshape(label_test.shape
 '''
 testing predicted values
 '''
-test_predict=model.predict(dijon_test, batch_size=32, verbose = 2)
+test_predict=model.predict(dijon_test, batch_size=32, verbose = 1)
 test_predict = np.repeat(test_predict, dijon.shape[1], axis=-1)
 test_predict = (df_scaled.inverse_transform(test_predict)[:,0]).reshape(test_predict.shape[0], 1)
 print('nb elements in test :',len(y_test) , '\nnb elements to plot :', nb_elmnts_to_print, 'premiers test éléments')

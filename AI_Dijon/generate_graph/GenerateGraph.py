@@ -35,9 +35,9 @@ def graphHistoryModel(history):
     try:
         plt.subplots(figsize=(18,9))
         plt.plot(history.history['loss'], label = 'train_losses')
-        plt.plot(history.history['acc'], label = 'train_accuracy')
+        #plt.plot(history.history['acc'], label = 'train_accuracy')
         plt.plot(history.history['val_loss'], label='val_losses')
-        plt.plot(history.history['val_acc'], label='val_accuracy')
+        #plt.plot(history.history['val_acc'], label='val_accuracy')
         plt.xlabel("epoch",fontsize=14)
         plt.ylabel("validation and train values",fontsize=14)
         plt.legend()
@@ -76,7 +76,7 @@ def graphPredictNextDays(last_data, NB_DAYS_PREDICTED, dijon, feature, fromDateT
         dijon_labels = np.array(pd.DataFrame(dijon['nbDi'], dtype='float').tail(last_data)).flatten()
         #plotting features values
         plt.plot(*zip(*sorted(zip(dijon_timestamps,dijon_labels))), color='blue', label='truth ' + str('in 62 last days'))
-        plt.plot(*zip(*sorted(zip(dijon_dates, feature))), 'b:o', color='blue', label=str(NB_DAYS_PREDICTED) + ' feature(s)')
+        plt.plot(*zip(*sorted(zip(dijon_dates, feature))), color='orange', label=str(NB_DAYS_PREDICTED) + ' feature(s)')
         plt.legend()
         plt.savefig(pathOutput+'4- last '+str(last_data)+' jours + predict_'+str(NB_DAYS_PREDICTED)+'_next_days.png')
     finally:
@@ -89,7 +89,7 @@ def graphFeatureInfos(dijon_dates, feature, NB_DAYS_PREDICTED):
     try:
         plt.subplots(figsize=(24,11))
         plt.xticks(rotation=90)
-        plt.bar(dijon_dates, feature, color='red', label=str(NB_DAYS_PREDICTED) + ' feature(s)')
+        plt.bar(dijon_dates, feature, color='orange', label=str(NB_DAYS_PREDICTED) + ' feature(s)')
         plt.title(str(NB_DAYS_PREDICTED) + ' next predictions values (bar chart)')
         plt.xlabel("date de demande d'intervention",fontsize=14)
         plt.ylabel("nombre de demande d'intervention",fontsize=14)
