@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-
 pathInput, pathOutput = "files/imgs/input/", "files/imgs/output/"
 '''
 generating folders root path
@@ -35,9 +34,9 @@ def graphHistoryModel(history):
     try:
         plt.subplots(figsize=(18,9))
         plt.plot(history.history['loss'], label = 'train_losses')
-        #plt.plot(history.history['acc'], label = 'train_accuracy')
+        plt.plot(history.history['acc'], label = 'train_accuracy')
         plt.plot(history.history['val_loss'], label='val_losses')
-        #plt.plot(history.history['val_acc'], label='val_accuracy')
+        plt.plot(history.history['val_acc'], label='val_accuracy')
         plt.xlabel("epoch",fontsize=14)
         plt.ylabel("validation and train values",fontsize=14)
         plt.legend()

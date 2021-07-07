@@ -10,7 +10,7 @@ def buildModel(enter, dijonX, dijonY):
     model.add(LSTM(dijonX.shape[1], input_shape=(dijonX.shape[1],dijonX.shape[2]), return_sequences=True))
     model.add(LSTM(dijonX.shape[1], return_sequences=False))
     model.add(Dense(dijonY.shape[1]))
-    model.compile(optimizer='adam', loss='mean_squared_error', metrics=['mae'])
+    model.compile(optimizer='adam', loss='mean_squared_error', metrics=['acc', 'mae'])
     return model
 
 #building the model - Recurrent Neural Network (LSTM) 
