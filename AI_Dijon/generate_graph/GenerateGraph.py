@@ -14,16 +14,39 @@ if not os.path.exists(pathOutput):os.makedirs(pathOutput)
 saving in imgs folder the graphs nbDi or meteo by date
 '''
 def graphNbDiMeteoByDate(df):
+    nb_days = 90
     try:
         for i in range(1, len(df.columns)):
+            if(i==1):
+                '''
+                nbDi by date the 3 last month -- get more details
+                '''
+                try:
+                    fig, ax = plt.subplots(figsize=(24,11))
+                    plt.title(str(nb_days)+" last_days_nbDi_by_date")
+                    ax.text(3, 28, 'weekends in red color in x axis (seasonality)', style='normal',fontsize=24, bbox={'facecolor': 'red',
+                    'alpha': 0.5, 'pad': 10})
+                    ax.plot(*zip(*sorted(zip(df[["date"]].values.flatten()[-nb_days:],df[df.columns[1]][-nb_days:].astype(float)))),'-o', color='blue', label=df.columns[1])
+                    ax.set_xticks(range(len(df[["date"]].values.flatten()[-nb_days:])))
+                    ax.set_xticklabels(df[["date"]].values.flatten()[-nb_days:], rotation=90)
+                    for xtick in ax.get_xticklabels():
+                        if(pd.to_datetime(xtick.get_text()).weekday()>4):xtick.set_color("red")
+                    plt.xlabel("date",fontsize=14)
+                    plt.ylabel(df.columns[1],fontsize=14)
+                    plt.legend()
+                    plt.savefig(pathInput+'1.'+str(1)+ '- '+df.columns[1]+'_by_date_last_3_month.png')
+                finally:
+                    plt.close()                
+            #plotting all feature of the dataframe by date
             plt.subplots(figsize=(24,11))
+            plt.title(df.columns[i]+' by date')
             plt.plot(*zip(*sorted(zip(df[["date"]].values.flatten(),df[df.columns[i]].astype(float)))), color='blue', label=df.columns[i])
             plt.xticks(df.index, df[["date"]].values.flatten(), rotation=90)
             plt.locator_params(axis='x', nbins=15)
             plt.xlabel("date",fontsize=14)
             plt.ylabel(df.columns[i],fontsize=14)
             plt.legend()
-            plt.savefig(pathInput+'1.'+str(i)+ '- '+df.columns[i]+'_byDate.png')
+            plt.savefig(pathInput+'1.'+str(i)+ '- '+df.columns[i]+'_by_date.png')
     finally:
         plt.close()
 
@@ -64,7 +87,7 @@ def graphTruthOnPrediction(nb_elmnts_to_print, y_test, test_predict):
 '''
 predict feature : (nb_days_predict) days
 '''
-def graphPredictNextDays(last_data, NB_DAYS_PREDICTED, dijon, feature, fromDateToNumberAfter, dijon_timestamps, dijon_dates):
+def graphPredictNextDays(last_data, NB_DAYS_PREDICTED, dijon, feature, dijon_timestamps, dijon_dates):
     try:
         plt.subplots(figsize=(24,11))
         plt.xticks(rotation=90)

@@ -8,7 +8,7 @@ from keras.models import Sequential
 def buildModel(enter, dijonX, dijonY):
     model = Sequential()
     model.add(LSTM(dijonX.shape[1], input_shape=(dijonX.shape[1],dijonX.shape[2]), return_sequences=True))
-    model.add(LSTM(dijonX.shape[1], return_sequences=False))
+    model.add(LSTM(3, return_sequences=False))
     model.add(Dense(dijonY.shape[1]))
     model.compile(optimizer='adam', loss='mean_squared_error', metrics=['acc', 'mae'])
     return model

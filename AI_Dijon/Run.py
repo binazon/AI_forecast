@@ -16,20 +16,25 @@ from evaluate.EvaluateModel import *
 from generate_graph.GenerateGraph import *
 from CrossValidation import *
 
-#timesteps value or lookback
-LOOK_BACK = 15
-NB_DAYS_PREDICTED, UNITS, EPOCHS, BATCH_SIZE, TEST_SIZE, SHUFFLE = 7, 150, 500, 32, 0.2, False
+'''
+timesteps or lookback : less or equal to 5
+openweathermap API get us 5 last meteo history from current day
+'''
+LOOK_BACK = 5
+NB_DAYS_PREDICTED, UNITS, EPOCHS, BATCH_SIZE, TEST_SIZE, SHUFFLE = 7, 150, 500, 32, 0.2, True
 rootOutputFile= "files/output/"
 '''
 generating folders root path
 '''
 if not os.path.exists(rootOutputFile):os.makedirs(rootOutputFile)
-dateNbDiTupleArray, dateMeteoTupleArray = requestDiByDate(), requestMeteoByDate()
+dateNbDiTupleArray = requestDiByDate()
 addingHidenDay=matchingDateStartEnd(dateBetweenStartEnd(dateNbDiTupleArray)[2], dict(dateNbDiTupleArray))
 print("start analysing from {} to {} : the last date in the potgresql bdd\ntotal number of days : {} days".format(
 dateBetweenStartEnd(dateNbDiTupleArray)[0], dateBetweenStartEnd(dateNbDiTupleArray)[1], len(addingHidenDay)))
 print("number of days in the period interventions are requested : {} days".format(len(dateNbDiTupleArray)))
 df=pd.DataFrame(addingHidenDay, columns=['date','nbDi'])
+
+dateMeteoTupleArray = requestMeteoByDate(len(addingHidenDay))
 '''
 adding meteo datas to the dataframe
 '''
@@ -96,7 +101,7 @@ finally:
 EarlyStopping to prevent the overfitting on the losses
 '''
 es= EarlyStopping(monitor='val_loss', verbose=1, patience=20), 
-history = model.fit(dijon_train, label_train, verbose=1, validation_split=0.2, epochs=EPOCHS, shuffle=False,
+history = model.fit(dijon_train, label_train, verbose=1, validation_split=0.2, epochs=EPOCHS, shuffle=SHUFFLE,
  batch_size=BATCH_SIZE, callbacks=[es])
 '''
 getting the RNN model result
@@ -138,7 +143,7 @@ dijon_timestamps = np.array(pd.DataFrame(df[["date"]]).tail(LAST_NB_DATA)).flatt
 fromDateToNumberAfter = listDatesBetweenDateAndNumber(date.fromisoformat(
     dijon_timestamps[len(dijon_timestamps)-1]), NB_DAYS_PREDICTED)
 dijon_dates = np.array(fromDateToNumberAfter, dtype='datetime64[D]').astype(str)
-graphPredictNextDays(LAST_NB_DATA, NB_DAYS_PREDICTED, dijon, feature, fromDateToNumberAfter, dijon_timestamps, dijon_dates)
+graphPredictNextDays(LAST_NB_DATA, NB_DAYS_PREDICTED, dijon, feature, dijon_timestamps, dijon_dates)
 '''
 graph with just feature informations
 '''

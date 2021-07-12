@@ -6,7 +6,7 @@ from Preprocessing import *
 from connect_database.ConnectPostGreSQL import *
 
 #global variables
-user_data, pass_data, db_data, host_data, port_data = "dme", "dme", "dme_ai", "frpardeml1l", "15432"
+user_data, pass_data, db_data, host_data, port_data = "dme", "dme", "dme_ai", "localhost", "5432"
 
 '''
 get lines or datas of the view di_by_date
@@ -35,14 +35,15 @@ get lines or datas of the table t_meteo_mto
 
 return array of tuple (date, meteo datas) 
 '''
-def requestMeteoByDate() -> List:
+def requestMeteoByDate(_limit : int) -> List:
     try:
         conn = connect_to_db(user_data, pass_data, db_data,host_data, port_data)
         cursor = conn.cursor()
         '''
         getting meteo of each date
+        stopping at the last date in di_by_date view
         '''
-        cursor.execute("select * from t_meteo_mto")
+        cursor.execute("select * from t_meteo_mto order by mto_date limit {}".format(_limit))
         meteoByDateInBddArray = cursor.fetchall()
         for i in range(len(meteoByDateInBddArray)):
             meteoTupleToList = list(meteoByDateInBddArray[i])
