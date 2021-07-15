@@ -24,7 +24,7 @@ def create_lstm_dataset(df, look):
         label = np.empty([number_of_rows - look, 1])
         for i in range(number_of_rows-look):
             train[i] = transformed_df.iloc[i:i+look, 0:number_of_features]
-            label[i] = transformed_df.iloc[i+look:i+look+1, 0]
+            label[i] = transformed_df.iloc[i+look:i+look+1, 0:1]
     finally:
         f.close()
     return scaler, train, label 

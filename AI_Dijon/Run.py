@@ -20,8 +20,8 @@ from CrossValidation import *
 timesteps or lookback : less or equal to 5
 openweathermap API get us 5 last meteo history from current day
 '''
-LOOK_BACK = 5
-NB_DAYS_PREDICTED, UNITS, EPOCHS, BATCH_SIZE, TEST_SIZE, SHUFFLE = 7, 150, 500, 32, 0.2, True
+LOOK_BACK = 7
+NB_DAYS_PREDICTED, UNITS, EPOCHS, BATCH_SIZE, TEST_SIZE, SHUFFLE = 7, 150, 500, 30, 0.2, True
 rootOutputFile= "files/output/"
 '''
 generating folders root path
@@ -100,7 +100,7 @@ finally:
 '''
 EarlyStopping to prevent the overfitting on the losses
 '''
-es= EarlyStopping(monitor='val_loss', verbose=1, patience=20), 
+es= EarlyStopping(monitor='val_loss', verbose=0, patience=60), 
 history = model.fit(dijon_train, label_train, verbose=1, validation_split=0.2, epochs=EPOCHS, shuffle=SHUFFLE,
  batch_size=BATCH_SIZE, callbacks=[es])
 '''
