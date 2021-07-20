@@ -3,7 +3,7 @@ sys.path.insert(1, os.path.abspath('.'))
 import numpy as np
 import pandas as pd
 from datetime import *
-from keras.callbacks import EarlyStopping
+from tensorflow.keras.callbacks import EarlyStopping
 from sklearn import *
 from Preprocessing import *
 from Prediction import *
@@ -13,7 +13,7 @@ from DataSetForModel import *
 from future.MeteoFuture import *
 from RequestFromDataBase import *
 from evaluate.EvaluateModel import *
-from generate_graph.GenerateGraph import *
+from generate_graph.Graph import *
 from CrossValidation import *
 
 '''
@@ -21,15 +21,16 @@ timesteps or lookback : less or equal to 5
 openweathermap API get us 5 last meteo history from current day
 '''
 LOOK_BACK = 7
-NB_DAYS_PREDICTED, UNITS, EPOCHS, BATCH_SIZE, TEST_SIZE, SHUFFLE = 7, 150, 500, 30, 0.2, True
-rootOutputFile= "files/output/"
+NB_DAYS_PREDICTED, EPOCHS, BATCH_SIZE, TEST_SIZE, VALIDATION_SPLIT, DROPOUT, WEIGHT_CONSTRAINT, SHUFFLE = 7, 500, 30, 0.2, 0.2, 0.1, 0, True
+PATIENCE = 60
+rootOutputFile= "generated/files/"
 '''
 generating folders root path
 '''
 if not os.path.exists(rootOutputFile):os.makedirs(rootOutputFile)
 dateNbDiTupleArray = requestDiByDate()
 addingHidenDay=matchingDateStartEnd(dateBetweenStartEnd(dateNbDiTupleArray)[2], dict(dateNbDiTupleArray))
-print("start analysing from {} to {} : the last date in the potgresql bdd\ntotal number of days : {} days".format(
+print("start the analyse from {} to {} : the last date in the potgresql bdd\ntotal number of days : {} days".format(
 dateBetweenStartEnd(dateNbDiTupleArray)[0], dateBetweenStartEnd(dateNbDiTupleArray)[1], len(addingHidenDay)))
 print("number of days in the period interventions are requested : {} days".format(len(dateNbDiTupleArray)))
 df=pd.DataFrame(addingHidenDay, columns=['date','nbDi'])
@@ -46,10 +47,10 @@ df['mto_wind_speed(m s)'], df['mto_clouds(%)'] = [i[7] for i in dateMeteoTupleAr
 generating future meteo files and load CSV future_meteo file 
 '''
 meteoFuture()
-futureMeteo = loadCsvFile("files/future/generated/CSV/futureMeteoByDate.csv")
+futureMeteo = loadCsvFile("generated/future/CSV/futureMeteoByDate.csv")
 ####################################### GENERATING OUPUT FILES #####################################################################
 '''
-saving in imgs folder the graphs nbDi or meteo by date
+saving in graph folder the graphs nbDi or meteo by date
 '''
 graphNbDiMeteoByDate(df)
 '''
@@ -62,11 +63,11 @@ dijon=df[["nbDi", 'mto_temp(celcius)' ,'mto_temp_min(celcius)',
 '''
 creating the dataset
 '''
-df_scaled, X, Y = create_lstm_dataset(dijon, LOOK_BACK)
+X, Y = create_lstm_dataset(dijon, LOOK_BACK)
 '''
 building the RNN model
 '''
-model = buildModel(UNITS, X, Y)
+model = buildModel(X.shape[1], DROPOUT, WEIGHT_CONSTRAINT, X, Y)
 '''
 writing output files -- dijon transformed file
 '''
@@ -84,6 +85,11 @@ spliting data_set
 '''
 dijon_train, dijon_test, label_train, label_test=model_selection.train_test_split(X, Y, test_size=TEST_SIZE, shuffle=SHUFFLE)
 '''
+searching good hyperparameters for the model
+hyperparams generated there are replaced in the model
+'''
+print(fixHyperParamsGridSearch(buildModel, dijon_train, label_train))
+'''
 writting in the output files
 '''
 try:
@@ -100,8 +106,8 @@ finally:
 '''
 EarlyStopping to prevent the overfitting on the losses
 '''
-es= EarlyStopping(monitor='val_loss', verbose=0, patience=60), 
-history = model.fit(dijon_train, label_train, verbose=1, validation_split=0.2, epochs=EPOCHS, shuffle=SHUFFLE,
+es= EarlyStopping(monitor='val_loss', verbose=1, patience=PATIENCE), 
+history = model.fit(dijon_train, label_train, verbose=1, validation_split=VALIDATION_SPLIT, epochs=EPOCHS, shuffle=SHUFFLE,
  batch_size=BATCH_SIZE, callbacks=[es])
 '''
 getting the RNN model result
@@ -111,22 +117,19 @@ print(evaluateModel(model, dijon_train, label_train, dijon_test, label_test))
 saving the graph of model history
 '''
 graphHistoryModel(history)
-
-#getNeighborsGraphStats(dijon_train, label_train)
-#getGrid(dijon_train, label_train)
 ####################################### PREDICTIONS #####################################################################
 '''
 treatment tests values
 '''
-label_test, nb_elmnts_to_print = np.repeat(label_test, dijon.shape[1], axis=-1), 30
-y_test = (df_scaled.inverse_transform(label_test)[:,0]).reshape(label_test.shape[0], 1)
+label_test, nb_elmnts_to_print = np.repeat(label_test, dijon.shape[1], axis=-1), 50
+y_test = (unormaliseData(label_test)[:,0]).reshape(label_test.shape[0], 1)
 '''
 testing predicted values
 '''
 test_predict=model.predict(dijon_test, batch_size=32, verbose = 1)
 test_predict = np.repeat(test_predict, dijon.shape[1], axis=-1)
-test_predict = (df_scaled.inverse_transform(test_predict)[:,0]).reshape(test_predict.shape[0], 1)
-print('nb elements in test :',len(y_test) , '\nnb elements to plot :', nb_elmnts_to_print, 'premiers test éléments')
+test_predict = (unormaliseData(test_predict)[:,0]).reshape(test_predict.shape[0], 1)
+print('nb elements in test :',len(y_test))
 '''
 plotting truth and nbDi prediction
 '''
@@ -138,7 +141,7 @@ generating_errors(y_test, test_predict, nb_elmnts_to_print)
 '''
 predict feature : (nb_days_predict) days
 '''
-feature, LAST_NB_DATA = np.rint(predictNextDays(model, dijon, NB_DAYS_PREDICTED, df_scaled, LOOK_BACK, futureMeteo)), 62
+feature, LAST_NB_DATA = np.rint(predictNextDays(model, dijon, NB_DAYS_PREDICTED, LOOK_BACK, futureMeteo)), 62
 dijon_timestamps = np.array(pd.DataFrame(df[["date"]]).tail(LAST_NB_DATA)).flatten()
 fromDateToNumberAfter = listDatesBetweenDateAndNumber(date.fromisoformat(
     dijon_timestamps[len(dijon_timestamps)-1]), NB_DAYS_PREDICTED)

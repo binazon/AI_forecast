@@ -10,7 +10,7 @@ openweathermap api just give us 7 forecadt day for free using
 key, latitude, longitude, excludes, units ="88d8939072279f6dd1283ee42e480c19", 47.316667, 5.016667, ",".join(["current","minutely","hourly", "alerts"]), "metric"
 apiFutureMeteo = "https://api.openweathermap.org/data/2.5/onecall?lat={}&lon={}&exclude={}&appid={}&units={}".format(latitude,
  longitude, excludes, key, units)
-rootFutureJSON, rootFutureCSV = "files/future/generated/JSON", "files/future/generated/CSV"
+rootFutureJSON, rootFutureCSV = "generated/future/JSON", "generated/future/CSV"
 
 '''
 generating folders root path

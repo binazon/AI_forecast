@@ -35,6 +35,32 @@ get lines or datas of the table t_meteo_mto
 
 return array of tuple (date, meteo datas) 
 '''
+def requestMeteoByDate() -> List:
+    try:
+        conn = connect_to_db(user_data, pass_data, db_data,host_data, port_data)
+        cursor = conn.cursor()
+        '''
+        getting meteo of each date
+        '''
+        cursor.execute("select * from t_meteo_mto")
+        meteoByDateInBddArray = cursor.fetchall()
+        for i in range(len(meteoByDateInBddArray)):
+            meteoTupleToList = list(meteoByDateInBddArray[i])
+            meteoTupleToList[0] = meteoTupleToList[0].strftime("%Y-%m-%d")
+            meteoByDateInBddArray[i]=tuple(meteoTupleToList)
+    except Exception as error:
+        print('Error fetching data from postgreSQL table', error)
+    finally:
+        if conn is not None:
+            cursor.close()
+            conn.close()
+    return meteoByDateInBddArray
+
+'''
+get lines or datas of the table t_meteo_mto
+
+return array of tuple (date, meteo datas) 
+'''
 def requestMeteoByDate(_limit : int) -> List:
     try:
         conn = connect_to_db(user_data, pass_data, db_data,host_data, port_data)

@@ -5,6 +5,11 @@ import unidecode, re
 from deprecated import deprecated
 from sklearn.preprocessing import *
 from datetime import *
+
+'''
+scale is defined from -1 to -1 to normalise datas
+'''
+scaler = MinMaxScaler(feature_range=(-1,1))
 #######################################METHODS#####################################################################
 '''
 loading csv file
@@ -98,3 +103,15 @@ def listDatesBetweenDateAndNumber(date, number) -> List:
     start = date + timedelta(days=1)
     end = date + timedelta(days=number)
     return np.array(pd.date_range(start, end))
+
+'''
+normalising data with values between 0 and 1
+'''
+def normaliseData(dataArray) -> List:
+    return scaler.fit_transform(dataArray)
+
+'''
+unormalise data : from values between 0 and 1 to real values
+'''
+def unormaliseData(dataArray) -> List:
+    return scaler.inverse_transform(dataArray)

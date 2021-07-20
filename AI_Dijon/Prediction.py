@@ -1,9 +1,10 @@
 from typing import List
 import numpy as np
 import pandas as pd
+from Preprocessing import *
 #######################################METHODS#####################################################################
 #predict data in the next nbdays
-def predictNextDays(model, array_enter, nbdays, scaled, look_back, futureMeteo) -> List:
+def predictNextDays(model, array_enter, nbdays, look_back, futureMeteo) -> List:
     x_input = np.array(pd.DataFrame(array_enter).tail(look_back), dtype='float')
     temp_input, lst_output, i = list(x_input), [], 1
     while(i<=nbdays):
@@ -13,7 +14,7 @@ def predictNextDays(model, array_enter, nbdays, scaled, look_back, futureMeteo) 
             yhat = model.predict(x_input, batch_size=32, verbose = 1)
             for p in futureMeteo.head(i).to_numpy().flatten()[1:futureMeteo.shape[1]]:yhat = np.append(yhat, p)
             yhat = yhat.reshape(1,array_enter.shape[1])
-            yhat = scaled.inverse_transform(yhat)[0]
+            yhat = unormaliseData(yhat)[0]
             temp_input.append(yhat)
             temp_input = temp_input[1:]
         else:
@@ -21,7 +22,7 @@ def predictNextDays(model, array_enter, nbdays, scaled, look_back, futureMeteo) 
             yhat = model.predict(x_input, batch_size=32, verbose = 1)
             for p in futureMeteo.head(i).to_numpy().flatten()[1:futureMeteo.shape[1]]:yhat = np.append(yhat, p)
             yhat = yhat.reshape(1,array_enter.shape[1])
-            yhat = scaled.inverse_transform(yhat)[0]
+            yhat = unormaliseData(yhat)[0]
             temp_input.append(yhat)
         lst_output.append(max(0,yhat[0]))
         i=i+1

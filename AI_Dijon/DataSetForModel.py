@@ -1,9 +1,11 @@
 import os
 import pandas as pd
 import numpy as np
+from scipy.sparse import data
 from sklearn.preprocessing import *
+from Preprocessing import *
 
-rootOutputFile = "files/output/"
+rootOutputFile = "generated/files/"
 
 '''
 generating folders root path
@@ -14,9 +16,7 @@ if not os.path.exists(rootOutputFile):os.makedirs(rootOutputFile)
 def create_lstm_dataset(df, look):
     try:
         number_of_rows, number_of_features = df.shape[0], df.shape[1]
-        scaler = StandardScaler().fit(df.values)
-        transformed_dataset = scaler.transform(df.values)
-        transformed_df = pd.DataFrame(data = transformed_dataset, index=df.index)
+        transformed_df = pd.DataFrame(data = normaliseData(df.values), index=df.index)
         #writing the dijon trnsformed file
         f = open(rootOutputFile+"2- dijon_df_transformed.txt", "w+")
         f.write(str(transformed_df.head(50)))
@@ -27,7 +27,7 @@ def create_lstm_dataset(df, look):
             label[i] = transformed_df.iloc[i+look:i+look+1, 0:1]
     finally:
         f.close()
-    return scaler, train, label 
+    return train, label 
 
 #using data preprocessing - simple LSTM RNN Model
 # -- each next value is based on look_back previous values

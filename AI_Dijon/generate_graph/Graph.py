@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-pathInput, pathOutput = "files/imgs/input/", "files/imgs/output/"
+pathInput, pathOutput = "generated/graphs/input/", "generated/graphs/output/"
 '''
 generating folders root path
 '''
@@ -11,7 +11,7 @@ if not os.path.exists(pathInput):os.makedirs(pathInput)
 if not os.path.exists(pathOutput):os.makedirs(pathOutput)
 
 '''
-saving in imgs folder the graphs nbDi or meteo by date
+saving in graphs/ folder the graphs nbDi or meteo by date
 '''
 def graphNbDiMeteoByDate(df):
     nb_days = 90
@@ -24,7 +24,7 @@ def graphNbDiMeteoByDate(df):
                 try:
                     fig, ax = plt.subplots(figsize=(24,11))
                     plt.title(str(nb_days)+" last_days_nbDi_by_date")
-                    ax.text(3, 28, 'weekends in red color in x axis (seasonality)', style='normal',fontsize=24, bbox={'facecolor': 'red',
+                    ax.text(3, 38, 'weekends in red color on x axis (seasonality)', style='normal',fontsize=24, bbox={'facecolor': 'red',
                     'alpha': 0.5, 'pad': 10})
                     ax.plot(*zip(*sorted(zip(df[["date"]].values.flatten()[-nb_days:],df[df.columns[1]][-nb_days:].astype(float)))),'-o', color='blue', label=df.columns[1])
                     ax.set_xticks(range(len(df[["date"]].values.flatten()[-nb_days:])))
@@ -75,7 +75,7 @@ def graphTruthOnPrediction(nb_elmnts_to_print, y_test, test_predict):
         fig,ax=plt.subplots(figsize=(18,9))
         plt.ylabel("nb demandes d'intervention",fontsize=14)
         plt.xlabel("pas par date",fontsize=14)
-        plt.title('prediction et valeurs réelles : ('+str(nb_elmnts_to_print)+' premiers éléments)')
+        plt.title('prediction sur valeurs réelles : ('+str(nb_elmnts_to_print)+' premiers éléments)')
         #plotting in truth : tests values 
         ax.plot(y_test[:nb_elmnts_to_print],'-o', color="blue", label="réel nbDi")
         ax.plot(test_predict[:nb_elmnts_to_print],'-o', color="green",label="prédiction nbDi")
