@@ -1,13 +1,22 @@
 import os
+from scipy.ndimage.measurements import label
+from scipy.stats import *
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from datetime import *
+from scipy.stats.stats import zscore
+from sklearn import linear_model
+plt.style.use('seaborn')
 
-pathInput, pathOutput = "generated/graphs/input/", "generated/graphs/output/"
+pathInput, pathInputAnalysis, pathOutput = "generated/graphs/input/samples/", "generated/graphs/input_analysis/outliers/", "generated/graphs/output/"
+pathInputRegression = "generated/graphs/input/linear_regression/"
 '''
 generating folders root path
 '''
 if not os.path.exists(pathInput):os.makedirs(pathInput)
+if not os.path.exists(pathInputRegression):os.makedirs(pathInputRegression)
+if not os.path.exists(pathInputAnalysis):os.makedirs(pathInputAnalysis)
 if not os.path.exists(pathOutput):os.makedirs(pathOutput)
 
 '''
@@ -24,7 +33,8 @@ def graphNbDiMeteoByDate(df):
                 try:
                     fig, ax = plt.subplots(figsize=(24,11))
                     plt.title(str(nb_days)+" last_days_nbDi_by_date")
-                    ax.text(3, 38, 'weekends in red color on x axis (seasonality)', style='normal',fontsize=24, bbox={'facecolor': 'red',
+                    plt.axhline(y=10, linewidth=2, color='black', label='limit weekend nbDi', linestyle='--')
+                    ax.text(0, 38, 'weekends in red on x axis, nbDi(weekend) < 10 (seasonality)', style='normal',fontsize=20, bbox={'facecolor': 'none',
                     'alpha': 0.5, 'pad': 10})
                     ax.plot(*zip(*sorted(zip(df[["date"]].values.flatten()[-nb_days:],df[df.columns[1]][-nb_days:].astype(float)))),'-o', color='blue', label=df.columns[1])
                     ax.set_xticks(range(len(df[["date"]].values.flatten()[-nb_days:])))
@@ -51,6 +61,29 @@ def graphNbDiMeteoByDate(df):
         plt.close()
 
 '''
+plotting the graph of linear regression of nbDi by date
+'''
+def linearRegressionNbDiByDate(df):
+    nbDi_column = df.columns[1]
+    regress = linear_model.LinearRegression()
+    regress.fit(df[["date"]], df[nbDi_column])
+    try:
+        #plotting all feature of the dataframe by date
+        plt.subplots(figsize=(24,11))
+        plt.title('linear regression of '+nbDi_column+' by date')
+        plt.scatter(*zip(*sorted(zip(df[["date"]].values.flatten(),df[nbDi_column].astype(float)))), color='blue', marker='+', label=nbDi_column)
+        plt.xticks(df.index, df[["date"]].values.flatten(), rotation=90)
+        plt.locator_params(axis='x', nbins=15)
+        plt.xlabel("date",fontsize=14)
+        plt.ylabel(nbDi_column,fontsize=14)
+        plt.legend()
+        plt.savefig(pathInputRegression+'linear_regression_'+nbDi_column+'_by_date.png')
+    finally:
+        plt.close()
+
+
+
+'''
 getting the history model : train_losses, train_accuracy, val_losses, val_accuracy
 '''
 def graphHistoryModel(history):
@@ -69,18 +102,34 @@ def graphHistoryModel(history):
 
 '''
 plotting truth and nbDi prediction
+
+sign of nb_elmnts_to_print design the kind of prediction on thruth will be plotted
+positive nb_elmnts_to_print : plot nb_elmnts_to_print first elements
+negative nb_elmnts_to_print : plot nb_elmnts_to_print last elements
 '''
 def graphTruthOnPrediction(nb_elmnts_to_print, y_test, test_predict):
     try:
-        fig,ax=plt.subplots(figsize=(18,9))
+        plt.subplots(figsize=(18,9))
         plt.ylabel("nb demandes d'intervention",fontsize=14)
         plt.xlabel("pas par date",fontsize=14)
-        plt.title('prediction sur valeurs réelles : ('+str(nb_elmnts_to_print)+' premiers éléments)')
-        #plotting in truth : tests values 
-        ax.plot(y_test[:nb_elmnts_to_print],'-o', color="blue", label="réel nbDi")
-        ax.plot(test_predict[:nb_elmnts_to_print],'-o', color="green",label="prédiction nbDi")
-        plt.legend()
-        plt.savefig(pathOutput+'3- predictOnTest.png')
+        if(nb_elmnts_to_print >0) :
+            '''
+            plotting nb_elmts_to_print first : predicted on truth values
+            ''' 
+            plt.title('prediction sur valeurs réelles : ('+str(nb_elmnts_to_print)+' premiers éléments) on '+str(len(y_test))+' elements total')
+            plt.plot(y_test[:nb_elmnts_to_print],'-o', color="blue", label="réel nbDi")
+            plt.plot(test_predict[:nb_elmnts_to_print],'-o', color="green",label="prédiction nbDi")
+            plt.legend()
+            plt.savefig(pathOutput+'3- predictOnTest_'+str(nb_elmnts_to_print)+'_first.png')
+        elif(nb_elmnts_to_print < 0):
+            '''
+            plotting nb_elmts_to_print last : predicted on truth values
+            '''
+            plt.title('prediction sur valeurs réelles : ('+str(abs(nb_elmnts_to_print))+' derniers éléments) sur '+str(len(y_test))+' elements total')
+            plt.plot(y_test[nb_elmnts_to_print:],'-o', color="blue", label="réel nbDi")
+            plt.plot(test_predict[nb_elmnts_to_print:],'-o', color="green",label="prédiction nbDi")
+            plt.legend()
+            plt.savefig(pathOutput+'3- predictOnTest_'+str(abs(nb_elmnts_to_print))+'_last.png')
     finally:
         plt.close()
 
@@ -94,6 +143,7 @@ def graphPredictNextDays(last_data, NB_DAYS_PREDICTED, dijon, feature, dijon_tim
         plt.xlabel("date de demande d'intervention",fontsize=14)
         plt.ylabel("nombre de demande d'intervention",fontsize=14)
         plt.title(str(last_data)+' derniers jours + ' + 'prédiction nbDi par date ('+ str(NB_DAYS_PREDICTED)+' futur jours)')
+        plt.axvline(x=last_data -1,ymin=0,ymax=max(dijon['nbDi']), linewidth=3, color='black', label='current day', linestyle='--')
         #getting 2 last month values for
         dijon_labels = np.array(pd.DataFrame(dijon['nbDi'], dtype='float').tail(last_data)).flatten()
         #plotting features values
@@ -119,3 +169,30 @@ def graphFeatureInfos(dijon_dates, feature, NB_DAYS_PREDICTED):
         plt.savefig(pathOutput+'5- predict_'+str(NB_DAYS_PREDICTED)+'_next_days.png')
     finally:
         plt.close()
+
+'''
+this graph allows to show the z_score that we get for eatch value of nbDi dataset
+
+values thaht are higher than 3 are the outliers.
+'''
+def graphZScoreByDate(df):
+    df_without_date = df.iloc[:, 1:].astype('float')
+    z_scores = zscore(df_without_date)
+    try:
+        for i in range(df_without_date.shape[1]):
+            #plotting all feature of the dataframe by date
+            plt.subplots(figsize=(24,11))
+            plt.axhline(y=3, linewidth=2, color='r', label='limit z_score == 3')
+            plt.text(0, 10, 'value is outlier if z_score(value) > limit z_score', style='normal',fontsize=30, bbox={'facecolor': 'none','alpha': 0.5, 'pad': 10})
+            plt.title('z_score '+df_without_date.columns[i]+' by date')
+            plt.plot(*zip(*sorted(zip(df[["date"]].values.flatten(),df_without_date[df_without_date.columns[i]].astype(float)))), color='blue', label=df_without_date.columns[i])
+            plt.plot(*zip(*sorted(zip(df[["date"]].values.flatten(),z_scores[:,i]))), color='black', label="z_score "+df_without_date.columns[i])
+            plt.xticks(df.index, df[["date"]].values.flatten(), rotation=90)
+            plt.locator_params(axis='x', nbins=15)
+            plt.xlabel("date",fontsize=14)
+            plt.ylabel("z_score_"+df_without_date.columns[i],fontsize=14)
+            plt.legend()
+            plt.savefig(pathInputAnalysis+'1.'+str(i)+ '- z_score_'+df_without_date.columns[i]+'_by_date.png')
+    finally:
+        plt.close()
+

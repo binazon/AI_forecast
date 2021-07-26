@@ -1,21 +1,24 @@
 import os.path
 import numpy as np
 import math
+from sklearn.metrics import *
 #######################################METHODS#####################################################################
 #getting performances of the model
-def generating_errors(test, predict, windows_size):
+def generating_errors(test_values, predict, windows_size):
     #forecast errors
-    forecast_error = np.array(test - predict)
-    forecast_errors = np.array([abs(test[i]-predict[i]) for i in range(len(test))])
-    print("forecast errors prediction ", windows_size,
-    "first elements : ".join(np.array(forecast_errors[:,0][:windows_size]).astype('str')))
-    print("maximal forecast error : "+ str(max(forecast_errors[:,0]))+"\n")
-    #mean forecast error
-    print("mean forecast error prediction : ", np.mean(forecast_error))
+    forecast_error = np.array(test_values - predict)
+    print("forecast errors prediction : ", 
+    ", ".join(np.array(forecast_error[:,0][:windows_size]).astype('str')), "\n")
+    print("Maximal error predict based on test : ", round(max(forecast_error[:,0]),2), "~", round(max(forecast_error[:,0])), "day(s)")
+    test_values = list(test_values.flatten())
+    predict = list(predict.flatten())
+    print('Total precision : ', round(precision_score([round(i) for i in test_values], [round(i) for i in predict], average='micro'),2), "%")
+    #bias or mean forecast error prediction
+    print("BIAS or mean forecast error prediction : ", (sum(forecast_error) * 1/len(test_values))[0])
     #mean abolute errors
-    print("mean absolute error prediction : ", np.mean(abs(forecast_error)))
+    print("Mean absolute error (MAE) on test prediction : ", mean_absolute_error([round(i) for i in test_values], [round(i) for i in predict]))
     #mean squared errors
-    mse_prediction = np.mean(np.power(forecast_error[:,0],2))
-    print("mean squared error prediction : ", mse_prediction)
+    print("Mean squared error (MSE) on test prediction: ", mean_squared_error([round(i) for i in test_values], [round(i) for i in predict]))
     #root mean squared errors
-    print("root mean squared error prediction : ", math.sqrt(mse_prediction))
+    mse_prediction = np.mean(np.power(forecast_error[:,0],2))
+    print("Root mean squared error (RMSE) prediction : ", math.sqrt(mse_prediction))

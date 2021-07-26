@@ -15,14 +15,15 @@ from RequestFromDataBase import *
 from evaluate.EvaluateModel import *
 from generate_graph.Graph import *
 from CrossValidation import *
+from AnalysisOutliers import *
 
 '''
 timesteps or lookback : less or equal to 5
 openweathermap API get us 5 last meteo history from current day
 '''
 LOOK_BACK = 7
-NB_DAYS_PREDICTED, EPOCHS, BATCH_SIZE, TEST_SIZE, VALIDATION_SPLIT, DROPOUT, WEIGHT_CONSTRAINT, SHUFFLE = 7, 500, 30, 0.2, 0.2, 0.1, 0, True
-PATIENCE = 60
+NB_DAYS_PREDICTED, EPOCHS, BATCH_SIZE, TEST_SIZE, VALIDATION_SPLIT, DROPOUT, WEIGHT_CONSTRAINT, SHUFFLE = 7, 1500, 30, 0.2, 0.2, 0.1, 1, False
+OPTIMIZER, PATIENCE = 'Adam', 1
 rootOutputFile= "generated/files/"
 '''
 generating folders root path
@@ -30,11 +31,10 @@ generating folders root path
 if not os.path.exists(rootOutputFile):os.makedirs(rootOutputFile)
 dateNbDiTupleArray = requestDiByDate()
 addingHidenDay=matchingDateStartEnd(dateBetweenStartEnd(dateNbDiTupleArray)[2], dict(dateNbDiTupleArray))
-print("start the analyse from {} to {} : the last date in the potgresql bdd\ntotal number of days : {} days".format(
+print("Start the analyse from {} to {} : the last date in the potgresql database.\nTotal number of days : {} days.".format(
 dateBetweenStartEnd(dateNbDiTupleArray)[0], dateBetweenStartEnd(dateNbDiTupleArray)[1], len(addingHidenDay)))
-print("number of days in the period interventions are requested : {} days".format(len(dateNbDiTupleArray)))
+print("Number of days where interventions exist : {} days.".format(len(dateNbDiTupleArray)))
 df=pd.DataFrame(addingHidenDay, columns=['date','nbDi'])
-
 dateMeteoTupleArray = requestMeteoByDate(len(addingHidenDay))
 '''
 adding meteo datas to the dataframe
@@ -54,32 +54,44 @@ saving in graph folder the graphs nbDi or meteo by date
 '''
 graphNbDiMeteoByDate(df)
 '''
+plot linear regression graph nbDi by date
+'''
+linearRegressionNbDiByDate(df)
+'''
+plotting real data and z_score(outliers score) values
+'''
+graphZScoreByDate(df)
+'''
 creating the new dijon dataframe
 '''
 dijon=df[["nbDi", 'mto_temp(celcius)' ,'mto_temp_min(celcius)',
 'mto_temp_max(celcius)','mto_pressure(hPa)', 'mto_humidity(%)', 'mto_visibility(km)', 'mto_wind_speed(m s)', 
 'mto_clouds(%)']].astype('float')
-#dijon=df[["nbDi"]].astype('float')
+'''
+detecting outliers from the dataset
+'''
+df_outliers = detect_outliers_2(dijon)
+'''
+Dataframe dijon without outliers
+'''
+#dijon = remove_outliers(dijon)
 '''
 creating the dataset
 '''
 X, Y = create_lstm_dataset(dijon, LOOK_BACK)
 '''
-building the RNN model
-'''
-model = buildModel(X.shape[1], DROPOUT, WEIGHT_CONSTRAINT, X, Y)
-'''
 writing output files -- dijon transformed file
 '''
 try:
-    file1, file2, file3 = open(rootOutputFile+"1- init_dataframe.txt", "w+"), open(rootOutputFile+"3- X_dataset.txt", "w+"),open(rootOutputFile+"4- Y_dataset.txt", "w+")
+    file0,file1, file2, file3 = open(rootOutputFile+"1.1- outliers_dataframe.txt", "w+"),open(rootOutputFile+"1- init_dataframe.txt", "w+"), open(rootOutputFile+"3- X_dataset.txt", "w+"),open(rootOutputFile+"4- Y_dataset.txt", "w+")
+    file0.write(str(df_outliers.head(100)))
     file1.write(str(dijon.head(50)))
     file2.write(str(X.shape)+'\n'+str(X[0:50]))
     file3.write(str(Y.shape)+'\n'+str(Y[-50:]))
 except OSError as error:
     print("cannot not open or write in file", error)
 finally:
-    for i in [file1, file2, file3]:i.close()
+    for i in [file0,file1, file2, file3]:i.close()
 '''
 spliting data_set
 '''
@@ -88,7 +100,11 @@ dijon_train, dijon_test, label_train, label_test=model_selection.train_test_spli
 searching good hyperparameters for the model
 hyperparams generated there are replaced in the model
 '''
-print(fixHyperParamsGridSearch(buildModel, dijon_train, label_train))
+res = fixHyperParamsGridSearch(buildModel, dijon_train, label_train)
+print(res)
+file_res = open(rootOutputFile+"res_param.txt", "w+")
+file_res.write(str(res))
+file_res.close()
 '''
 writting in the output files
 '''
@@ -103,6 +119,10 @@ except OSError as error:
     print("cannot not open or write in file", error)
 finally:
     for i in [file1, file2, file3, file4]:i.close()
+'''
+building the RNN model
+'''
+model = buildModel(2, DROPOUT, WEIGHT_CONSTRAINT, OPTIMIZER)
 '''
 EarlyStopping to prevent the overfitting on the losses
 '''
@@ -129,11 +149,12 @@ testing predicted values
 test_predict=model.predict(dijon_test, batch_size=32, verbose = 1)
 test_predict = np.repeat(test_predict, dijon.shape[1], axis=-1)
 test_predict = (unormaliseData(test_predict)[:,0]).reshape(test_predict.shape[0], 1)
-print('nb elements in test :',len(y_test))
+print('nb elements in the test dataset :',len(y_test) , '\nnb elements to plot :', nb_elmnts_to_print, 'first test éléments')
 '''
-plotting truth and nbDi prediction
+plotting truth and nbDi prediction on nb_elmnts_to_print first and nb_elmnts_to_print last
 '''
 graphTruthOnPrediction(nb_elmnts_to_print, y_test, test_predict)
+graphTruthOnPrediction(-1 * nb_elmnts_to_print, y_test, test_predict)
 '''
 mesuring performances of the model
 '''

@@ -9,7 +9,7 @@ from datetime import *
 '''
 scale is defined from -1 to -1 to normalise datas
 '''
-scaler = MinMaxScaler(feature_range=(-1,1))
+scaler = MinMaxScaler()
 #######################################METHODS#####################################################################
 '''
 loading csv file

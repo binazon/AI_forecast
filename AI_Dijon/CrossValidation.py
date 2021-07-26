@@ -1,8 +1,8 @@
+from matplotlib.pyplot import step
 import numpy as np
 from sklearn.model_selection import *
 from sklearn.neighbors import *
 from tensorflow.keras.wrappers.scikit_learn import *
-import matplotlib.pyplot as plt
 
 '''
 searching good hyperparameters for the model with gridSearchCV
@@ -12,29 +12,24 @@ def fixHyperParamsGridSearch(model_model, x_train, y_train) -> str:
     '''
     specifiying range of parameters
     '''
-    neurons = np.arange(x_train.shape[1], x_train.shape[1] * 3, step=x_train.shape[1])
-    dropout_rate = np.arange(0, 0.2, step=0.1)
-    weight_constraint = np.arange(0, 3)
-    batch_size = np.arange(32,64, step=32)
-    epochs = np.arange(500, 1500, step=500)
+    neurons = [2,3,4,7]
+    dropout_rate = [0,0.1,0.2, 0.3]
+    weight_constraint = [0,1,2,3]
+    #optimizer = ['SGD', 'Adadelta', 'RMSprop', 'Adagrad', 'Adam']
+    optimizer = ['SGD', 'Adam']
+    batch_size = [32,64]
+    epochs = [500,1000,1500]
     '''
     model parameters and batch_size and epochs for the fit
     '''
     paramsGrid=dict(
         neurons = list(neurons),
         dropout = list(dropout_rate),
-        weight_constraint = list(weight_constraint), 
-        dijonX = list(x_train),
-        dijonY = list(y_train),
+        weight_constraint = list(weight_constraint),
+        optimizer = optimizer,
         batch_size = list(batch_size),
         epochs = list(epochs)
     )
-    grid = GridSearchCV(estimator=model, param_grid=paramsGrid)
-
-    print(x_train.shape)
-    print(y_train.shape)
-    try:
-        grid.fit(x_train, y_train)
-    except ValueError:
-        pass
-    #return 'best score : ' + str(grid_result.best_score_) + 'params : '  + str(grid_result.best_params_)
+    grid = GridSearchCV(estimator=model, param_grid=paramsGrid, cv=5)
+    grid_result = grid.fit(x_train, y_train)
+    return 'best score : ' + str(grid_result.best_score_) + 'params : '  + str(grid_result.best_params_)

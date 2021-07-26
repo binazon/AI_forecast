@@ -42,7 +42,7 @@ def meteoFuture():
                     "mto_temp_max" : i.get("temp")['max'],
                     "mto_pressure" : i.get("pressure"),
                     "mto_humidity" : i.get("humidity"),
-                    "mto_visibility" : 0,
+                    "mto_visibility" : 10,
                     "mto_wind_speed" : i.get("wind_speed"),
                     "mto_couds" : i.get("clouds")
                 })

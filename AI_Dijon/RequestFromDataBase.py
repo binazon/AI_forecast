@@ -42,7 +42,7 @@ def requestMeteoByDate() -> List:
         '''
         getting meteo of each date
         '''
-        cursor.execute("select * from t_meteo_mto")
+        cursor.execute("select * from t_meteo_mto order by mto_date")
         meteoByDateInBddArray = cursor.fetchall()
         for i in range(len(meteoByDateInBddArray)):
             meteoTupleToList = list(meteoByDateInBddArray[i])
