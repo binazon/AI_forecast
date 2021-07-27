@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import *
+import time
 from scipy.stats.stats import zscore
 from sklearn import linear_model
 plt.style.use('seaborn')
@@ -66,12 +67,18 @@ plotting the graph of linear regression of nbDi by date
 def linearRegressionNbDiByDate(df):
     nbDi_column = df.columns[1]
     regress = linear_model.LinearRegression()
-    regress.fit(df[["date"]], df[nbDi_column])
+    '''
+    date to timetamp
+    '''
+    timestamp = pd.DataFrame([time.mktime(datetime.strptime(i, "%Y-%m-%d").timetuple()) for i in np.array(df['date'])])    
+    regress.fit(timestamp, df[nbDi_column])
+    res = regress.predict(timestamp)
     try:
         #plotting all feature of the dataframe by date
         plt.subplots(figsize=(24,11))
         plt.title('linear regression of '+nbDi_column+' by date')
         plt.scatter(*zip(*sorted(zip(df[["date"]].values.flatten(),df[nbDi_column].astype(float)))), color='blue', marker='+', label=nbDi_column)
+        #plt.plot(*zip(*sorted(zip(timestamp, res ))), color='black')
         plt.xticks(df.index, df[["date"]].values.flatten(), rotation=90)
         plt.locator_params(axis='x', nbins=15)
         plt.xlabel("date",fontsize=14)
@@ -177,7 +184,7 @@ values thaht are higher than 3 are the outliers.
 '''
 def graphZScoreByDate(df):
     df_without_date = df.iloc[:, 1:].astype('float')
-    z_scores = zscore(df_without_date)
+    z_scores = pd.DataFrame(zscore(df_without_date))
     try:
         for i in range(df_without_date.shape[1]):
             #plotting all feature of the dataframe by date
@@ -186,7 +193,7 @@ def graphZScoreByDate(df):
             plt.text(0, 10, 'value is outlier if z_score(value) > limit z_score', style='normal',fontsize=30, bbox={'facecolor': 'none','alpha': 0.5, 'pad': 10})
             plt.title('z_score '+df_without_date.columns[i]+' by date')
             plt.plot(*zip(*sorted(zip(df[["date"]].values.flatten(),df_without_date[df_without_date.columns[i]].astype(float)))), color='blue', label=df_without_date.columns[i])
-            plt.plot(*zip(*sorted(zip(df[["date"]].values.flatten(),z_scores[:,i]))), color='black', label="z_score "+df_without_date.columns[i])
+            plt.plot(*zip(*sorted(zip(df[["date"]].values.flatten(),z_scores.iloc[:,i]))), color='black', label="z_score "+df_without_date.columns[i])
             plt.xticks(df.index, df[["date"]].values.flatten(), rotation=90)
             plt.locator_params(axis='x', nbins=15)
             plt.xlabel("date",fontsize=14)

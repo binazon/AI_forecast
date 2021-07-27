@@ -1,3 +1,4 @@
+import globals.global_variable as global_vars
 from tensorflow.keras.layers import *
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.constraints import *
@@ -6,7 +7,7 @@ from tensorflow.keras.constraints import *
 #building the model RNN - LSTM
 def buildModel(neurons, dropout, weight_constraint, optimizer):
     model = Sequential()
-    model.add(LSTM(neurons, input_shape=(7, 9), kernel_constraint=MaxNorm(weight_constraint), return_sequences=True))
+    model.add(LSTM(neurons, input_shape=(global_vars.x_shape, global_vars.y_shape), kernel_constraint=MaxNorm(weight_constraint), return_sequences=True))
     model.add(LSTM(neurons//2, return_sequences=False))
     model.add(Dropout(dropout))
     model.add(Dense(1, activation='sigmoid'))

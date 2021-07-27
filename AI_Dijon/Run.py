@@ -2,6 +2,7 @@ import os,sys
 sys.path.insert(1, os.path.abspath('.'))
 import numpy as np
 import pandas as pd
+import globals.global_variable as global_vars
 from datetime import *
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn import *
@@ -23,7 +24,7 @@ openweathermap API get us 5 last meteo history from current day
 '''
 LOOK_BACK = 7
 NB_DAYS_PREDICTED, EPOCHS, BATCH_SIZE, TEST_SIZE, VALIDATION_SPLIT, DROPOUT, WEIGHT_CONSTRAINT, SHUFFLE = 7, 1500, 30, 0.2, 0.2, 0.1, 1, False
-OPTIMIZER, PATIENCE = 'Adam', 1
+OPTIMIZER, PATIENCE = 'Adam', 20
 rootOutputFile= "generated/files/"
 '''
 generating folders root path
@@ -80,6 +81,11 @@ creating the dataset
 '''
 X, Y = create_lstm_dataset(dijon, LOOK_BACK)
 '''
+updating global variables
+'''
+global_vars.x_shape = X.shape[1]
+global_vars.y_shape = X.shape[2]
+'''
 writing output files -- dijon transformed file
 '''
 try:
@@ -96,15 +102,6 @@ finally:
 spliting data_set
 '''
 dijon_train, dijon_test, label_train, label_test=model_selection.train_test_split(X, Y, test_size=TEST_SIZE, shuffle=SHUFFLE)
-'''
-searching good hyperparameters for the model
-hyperparams generated there are replaced in the model
-'''
-res = fixHyperParamsGridSearch(buildModel, dijon_train, label_train)
-print(res)
-file_res = open(rootOutputFile+"res_param.txt", "w+")
-file_res.write(str(res))
-file_res.close()
 '''
 writting in the output files
 '''
