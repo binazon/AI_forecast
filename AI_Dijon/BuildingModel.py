@@ -5,13 +5,12 @@ from tensorflow.keras.constraints import *
 
 #######################################METHODS#####################################################################
 #building the model RNN - LSTM
-def buildModel(neurons, dropout, weight_constraint, optimizer):
+def buildModel():
     model = Sequential()
-    model.add(LSTM(neurons, input_shape=(global_vars.x_shape, global_vars.y_shape), kernel_constraint=MaxNorm(weight_constraint), return_sequences=True))
-    model.add(LSTM(neurons//2, return_sequences=False))
-    model.add(Dropout(dropout))
-    model.add(Dense(1, activation='sigmoid'))
-    model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['acc', 'mae'])
+    model.add(LSTM(64, input_shape=(global_vars.x_shape, global_vars.y_shape), return_sequences=True))
+    model.add(LSTM(32, return_sequences=False))
+    model.add(Dense(1))
+    model.compile(optimizer='sgd', loss='mean_squared_error', metrics=['mae', 'acc'])
     return model
 
 #building the model - Recurrent Neural Network (LSTM) 
