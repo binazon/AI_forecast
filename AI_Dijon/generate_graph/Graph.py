@@ -1,17 +1,18 @@
 import os
-from scipy.ndimage.measurements import label
 from scipy.stats import *
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import *
 import time
-from scipy.stats.stats import zscore
+from scipy.stats.stats import *
+from scipy.optimize import curve_fit
 from sklearn import linear_model
+from pandas.plotting import autocorrelation_plot
 plt.style.use('seaborn')
 
 pathInput, pathInputAnalysis, pathOutput = "generated/graphs/input/samples/", "generated/graphs/input_analysis/outliers/", "generated/graphs/output/"
-pathInputRegression = "generated/graphs/input/linear_regression/"
+pathInputRegression, pathInputAutocorrelation = "generated/graphs/input/linear_regression/", "generated/graphs/input_analysis/autocorrelation/"
 '''
 generating folders root path
 '''
@@ -19,6 +20,13 @@ if not os.path.exists(pathInput):os.makedirs(pathInput)
 if not os.path.exists(pathInputRegression):os.makedirs(pathInputRegression)
 if not os.path.exists(pathInputAnalysis):os.makedirs(pathInputAnalysis)
 if not os.path.exists(pathOutput):os.makedirs(pathOutput)
+if not os.path.exists(pathInputAutocorrelation):os.makedirs(pathInputAutocorrelation)
+
+'''
+creation of polynome to plot the non_linear regression graph
+'''
+def Pol(x, a, b, c, d,e,f):
+    return a*x + b*x**2 + c*x**3 + d*x**4 + e*x**5 + f
 
 '''
 saving in graphs/ folder the graphs nbDi or meteo by date
@@ -65,31 +73,17 @@ def graphNbDiMeteoByDate(df):
 plotting the graph of linear regression of nbDi by date
 '''
 def linearRegressionNbDiByDate(df):
-    nbDi_column = df.columns[1]
-    regress = linear_model.LinearRegression()
-    '''
-    date to timetamp
-    '''
-    timestamp = pd.DataFrame([time.mktime(datetime.strptime(i, "%Y-%m-%d").timetuple()) for i in np.array(df['date'])])    
-    regress.fit(timestamp, df[nbDi_column])
-    res = regress.predict(timestamp)
+    xdata=np.linspace(start=1, stop=len(df), num=len(df))
     try:
-        #plotting all feature of the dataframe by date
+        popt, pcov = curve_fit(Pol, xdata, df['nbDi'].astype('float'))
         plt.subplots(figsize=(24,11))
-        plt.title('linear regression of '+nbDi_column+' by date')
-        plt.scatter(*zip(*sorted(zip(df[["date"]].values.flatten(),df[nbDi_column].astype(float)))), color='blue', marker='+', label=nbDi_column)
-        #plt.plot(*zip(*sorted(zip(timestamp, res ))), color='black')
-        plt.xticks(df.index, df[["date"]].values.flatten(), rotation=90)
-        plt.locator_params(axis='x', nbins=15)
-        plt.xlabel("date",fontsize=14)
-        plt.ylabel(nbDi_column,fontsize=14)
-        plt.legend()
-        plt.savefig(pathInputRegression+'linear_regression_'+nbDi_column+'_by_date.png')
+        plt.title('linear_regression_nbDi_by_date.png')
+        plt.scatter(xdata,df['nbDi'].astype('float'), marker='+', color='blue')
+        plt.plot(xdata,Pol(xdata, *popt),color='black')
+        plt.savefig(pathInputRegression+'linear_regression_nbDi_by_date.png')
     finally:
         plt.close()
-
-
-
+    
 '''
 getting the history model : train_losses, train_accuracy, val_losses, val_accuracy
 '''
@@ -203,3 +197,18 @@ def graphZScoreByDate(df):
     finally:
         plt.close()
 
+'''
+plotting the graph of autocorrelation on nbDi
+the autocorrelation is specifiying the number of history day (LOOKBACK) to consider for the learning : data pre_precessing
+'''
+def graphAutocorrelationNbDi(df):
+    try:
+        autocorrelation = autocorrelation_plot(df.nbDi.astype('int'))
+        print(df.nbDi.astype('int').autocorr())
+        autocorrelation.plot()
+        plt.title('Autocorrelation on nbDi')
+        plt.xlabel("Lags or number of days in the datbase",fontsize=12)
+        plt.plot()
+        plt.savefig(pathInputAutocorrelation+'autocorrelation_nbDi.png')
+    finally:
+        plt.close()

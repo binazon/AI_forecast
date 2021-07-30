@@ -12,7 +12,7 @@ and is executed each day at 00 o'clock
 
 city, key, units, today = "Dijon,FR", "88d8939072279f6dd1283ee42e480c19", "metric", date.today().strftime("%Y-%m-%d")
 apiCurrentMeteo, conn = "https://api.openweathermap.org/data/2.5/weather?q="+str(city)+"&APPID="+str(key)+"&units="+str(units), None
-user_data, pass_data, db_data, host_data, port_data = "dme", "dme", "dme_ai", "localhost", "5432"
+user_data, pass_data, db_data, host_data, port_data = "dme", "dme", "dme_ai", "frpardeml1l", "15432"
 
 #feed the database with the current day meteo informations
 try:

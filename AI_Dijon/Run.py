@@ -22,7 +22,7 @@ from AnalysisOutliers import *
 timesteps or lookback : less or equal to 5
 openweathermap API get us 5 last meteo history from current day
 '''
-LOOK_BACK = 7
+LOOK_BACK = 30
 NB_DAYS_PREDICTED, EPOCHS, BATCH_SIZE, TEST_SIZE, VALIDATION_SPLIT, DROPOUT, WEIGHT_CONSTRAINT, SHUFFLE = 7, 500, 32, 0.2, 0.2, 0.1, 1, True
 OPTIMIZER, PATIENCE = 'Adam', 20
 rootOutputFile= "generated/files/"
@@ -49,6 +49,10 @@ generating future meteo files and load CSV future_meteo file
 '''
 meteoFuture()
 futureMeteo = loadCsvFile("generated/future/CSV/futureMeteoByDate.csv")
+'''
+checking the autocorrelation graph
+'''
+graphAutocorrelationNbDi(df)
 ####################################### GENERATING OUPUT FILES #####################################################################
 '''
 saving in graph folder the graphs nbDi or meteo by date
@@ -102,11 +106,14 @@ finally:
 spliting data_set
 '''
 dijon_train, dijon_test, label_train, label_test=model_selection.train_test_split(X, Y, test_size=TEST_SIZE, shuffle=SHUFFLE)
-
-'''res = fixHyperParamsGridSearch(buildModel, dijon_train, label_train)
-file = open(rootOutputFile+"res.txt", "w+")
-file.write(str(res)) 
-file.close()'''
+'''
+searching good hyperparameters for the model
+hyperparams generated there are replaced in the model
+'''
+'''hyper_params = fixHyperParamsGridSearch(buildModel, dijon_train, label_train)
+file_res = open(rootOutputFile+"hyper_params", "w+")
+file_res.write(str(hyper_params))
+file_res.close()'''
 '''
 writting in the output files
 '''
@@ -129,7 +136,7 @@ model = buildModel()
 EarlyStopping to prevent the overfitting on the losses
 '''
 es= EarlyStopping(monitor='val_loss', verbose=1, patience=PATIENCE), 
-history = model.fit(dijon_train, label_train, verbose=1, validation_split=VALIDATION_SPLIT, epochs=EPOCHS, shuffle=SHUFFLE,
+history = model.fit(dijon_train, label_train, verbose=1, validation_split=VALIDATION_SPLIT, epochs=EPOCHS, shuffle=False,
  batch_size=BATCH_SIZE, callbacks=[es])
 '''
 getting the RNN model result
@@ -150,9 +157,6 @@ testing predicted values
 '''
 test_predict=model.predict(dijon_test, batch_size=32, verbose = 1)
 test_predict = np.repeat(test_predict, dijon.shape[1], axis=-1)
-
-print("toto", test_predict.shape)
-
 test_predict = (unormaliseData(test_predict)[:,0]).reshape(test_predict.shape[0], 1)
 print('nb elements in the test dataset :',len(y_test) , '\nnb elements to plot :', nb_elmnts_to_print, 'first test éléments')
 '''
