@@ -1,7 +1,6 @@
 from matplotlib.pyplot import step
 import numpy as np
 from sklearn.model_selection import *
-from sklearn.neighbors import *
 from tensorflow.keras.wrappers.scikit_learn import *
 
 '''

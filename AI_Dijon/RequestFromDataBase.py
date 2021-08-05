@@ -6,7 +6,7 @@ from Preprocessing import *
 from connect_database.ConnectPostGreSQL import *
 
 #global variables
-user_data, pass_data, db_data, host_data, port_data = "dme", "dme", "dme_ai", "frpardeml1l", "15432"
+user_data, pass_data, db_data, host_data, port_data = "dme", "dme", "dme_ai", "localhost", "5432"
 
 '''
 get lines or datas of the view di_by_date

@@ -105,7 +105,7 @@ finally:
 '''
 spliting data_set
 '''
-dijon_train, dijon_test, label_train, label_test=model_selection.train_test_split(X, Y, test_size=TEST_SIZE, shuffle=SHUFFLE)
+dijon_train, dijon_test, label_train, label_test=model_selection.train_test_split(X, Y, test_size=TEST_SIZE, shuffle=True)
 '''
 searching good hyperparameters for the model
 hyperparams generated there are replaced in the model

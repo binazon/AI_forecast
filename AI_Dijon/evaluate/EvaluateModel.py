@@ -1,6 +1,4 @@
 #evaluate the deep learning model
-from scipy.stats.stats import mode
-
 
 def evaluateModel(model, dijon_train, label_train, dijon_test, label_test) -> str:
     #evaluation in train dataset
