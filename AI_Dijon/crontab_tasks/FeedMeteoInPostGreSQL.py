@@ -12,13 +12,11 @@ and is executed each day at 00 o'clock
 
 city, key, units, today = "Dijon,FR", "88d8939072279f6dd1283ee42e480c19", "metric", date.today().strftime("%Y-%m-%d")
 apiCurrentMeteo, conn = "https://api.openweathermap.org/data/2.5/weather?q="+str(city)+"&APPID="+str(key)+"&units="+str(units), None
-user_data, pass_data, db_data, host_data, port_data = "dme", "dme", "dme_ai", "localhost", "5432"
 
 #feed the database with the current day meteo informations
 try:
     insert_command = "insert into t_meteo_mto values(%s,%s,%s,%s,%s,%s,%s,%s,%s)"
-    conn = connect_to_db(user_data, pass_data, db_data,host_data, port_data)
-    cursor = conn.cursor()
+    cursor = ConnectPostGreSQL().connect_to_db().cursor()
     response = requests.get(apiCurrentMeteo)
     cursor.execute("select count(*) from t_meteo_mto where mto_date='"+today+"'")
     if(response.status_code == 200 and cursor.fetchone()[0]==0):

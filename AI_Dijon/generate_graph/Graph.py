@@ -4,15 +4,17 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import *
-import time
 from scipy.stats.stats import *
 from scipy.optimize import curve_fit
-from sklearn import linear_model
 from pandas.plotting import autocorrelation_plot
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+from statsmodels.tsa.seasonal import seasonal_decompose
 plt.style.use('seaborn')
 
 pathInput, pathInputAnalysis, pathOutput = "generated/graphs/input/samples/", "generated/graphs/input_analysis/outliers/", "generated/graphs/output/"
 pathInputRegression, pathInputAutocorrelation = "generated/graphs/input/linear_regression/", "generated/graphs/input_analysis/autocorrelation/"
+pathInputSeasonalDecompose = "generated/graphs/input_analysis/seasonal_decompose/"
+
 '''
 generating folders root path
 '''
@@ -21,6 +23,7 @@ if not os.path.exists(pathInputRegression):os.makedirs(pathInputRegression)
 if not os.path.exists(pathInputAnalysis):os.makedirs(pathInputAnalysis)
 if not os.path.exists(pathOutput):os.makedirs(pathOutput)
 if not os.path.exists(pathInputAutocorrelation):os.makedirs(pathInputAutocorrelation)
+if not os.path.exists(pathInputSeasonalDecompose):os.makedirs(pathInputSeasonalDecompose)
 
 '''
 creation of polynome to plot the non_linear regression graph
@@ -40,14 +43,11 @@ def graphNbDiMeteoByDate(df):
                 nbDi by date the 3 last month -- get more details
                 '''
                 try:
-                    fig, ax = plt.subplots(figsize=(24,11))
+                    ax = plt.subplots(figsize=(24,11))[1]
                     plt.title(str(nb_days)+" last_days_nbDi_by_date")
-                    plt.axhline(y=10, linewidth=2, color='black', label='limit weekend nbDi', linestyle='--')
-                    ax.text(0, 38, 'weekends in red on x axis, nbDi(weekend) < 10 (seasonality)', style='normal',fontsize=20, bbox={'facecolor': 'none',
-                    'alpha': 0.5, 'pad': 10})
-                    ax.plot(*zip(*sorted(zip(df[["date"]].values.flatten()[-nb_days:],df[df.columns[1]][-nb_days:].astype(float)))),'-o', color='blue', label=df.columns[1])
-                    ax.set_xticks(range(len(df[["date"]].values.flatten()[-nb_days:])))
-                    ax.set_xticklabels(df[["date"]].values.flatten()[-nb_days:], rotation=90)
+                    ax.plot(np.arange(nb_days), df[df.columns[1]][-nb_days:].astype(float),'-o', color='blue', label=df.columns[1])
+                    ax.set_xticks(np.arange(nb_days))
+                    ax.set_xticklabels(np.array(df.index.values[-1 * nb_days:], dtype='datetime64[D]'), rotation=90)
                     for xtick in ax.get_xticklabels():
                         if(pd.to_datetime(xtick.get_text()).weekday()>4):xtick.set_color("red")
                     plt.xlabel("date",fontsize=14)
@@ -59,9 +59,7 @@ def graphNbDiMeteoByDate(df):
             #plotting all feature of the dataframe by date
             plt.subplots(figsize=(24,11))
             plt.title(df.columns[i]+' by date')
-            plt.plot(*zip(*sorted(zip(df[["date"]].values.flatten(),df[df.columns[i]].astype(float)))), color='blue', label=df.columns[i])
-            plt.xticks(df.index, df[["date"]].values.flatten(), rotation=90)
-            plt.locator_params(axis='x', nbins=15)
+            plt.plot(df[df.columns[i]].astype(float), color='blue', label=df.columns[i])
             plt.xlabel("date",fontsize=14)
             plt.ylabel(df.columns[i],fontsize=14)
             plt.legend()
@@ -80,6 +78,7 @@ def linearRegressionNbDiByDate(df):
         plt.title('linear_regression_nbDi_by_date.png')
         plt.scatter(xdata,df['nbDi'].astype('float'), marker='+', color='blue')
         plt.plot(xdata,Pol(xdata, *popt),color='black')
+        plt.ylabel("nbDi",fontsize=14)
         plt.savefig(pathInputRegression+'linear_regression_nbDi_by_date.png')
     finally:
         plt.close()
@@ -149,7 +148,7 @@ def graphPredictNextDays(last_data, NB_DAYS_PREDICTED, dijon, feature, dijon_tim
         dijon_labels = np.array(pd.DataFrame(dijon['nbDi'], dtype='float').tail(last_data)).flatten()
         #plotting features values
         plt.plot(*zip(*sorted(zip(dijon_timestamps,dijon_labels))), color='blue', label='truth ' + str('in 62 last days'))
-        plt.plot(*zip(*sorted(zip(dijon_dates, feature))), color='orange', label=str(NB_DAYS_PREDICTED) + ' feature(s)')
+        plt.plot(*zip(*sorted(zip(dijon_dates, feature))), '-o', color='orange', label=str(NB_DAYS_PREDICTED) + ' feature(s)')
         plt.legend()
         plt.savefig(pathOutput+'4- last '+str(last_data)+' jours + predict_'+str(NB_DAYS_PREDICTED)+'_next_days.png')
     finally:
@@ -183,13 +182,11 @@ def graphZScoreByDate(df):
         for i in range(df_without_date.shape[1]):
             #plotting all feature of the dataframe by date
             plt.subplots(figsize=(24,11))
-            plt.axhline(y=3, linewidth=2, color='r', label='limit z_score == 3')
             plt.text(0, 10, 'value is outlier if z_score(value) > limit z_score', style='normal',fontsize=30, bbox={'facecolor': 'none','alpha': 0.5, 'pad': 10})
             plt.title('z_score '+df_without_date.columns[i]+' by date')
-            plt.plot(*zip(*sorted(zip(df[["date"]].values.flatten(),df_without_date[df_without_date.columns[i]].astype(float)))), color='blue', label=df_without_date.columns[i])
-            plt.plot(*zip(*sorted(zip(df[["date"]].values.flatten(),z_scores.iloc[:,i]))), color='black', label="z_score "+df_without_date.columns[i])
-            plt.xticks(df.index, df[["date"]].values.flatten(), rotation=90)
-            plt.locator_params(axis='x', nbins=15)
+            plt.plot(df.index, df_without_date[df_without_date.columns[i]].astype(float), color='blue', label=df_without_date.columns[i])
+            plt.plot(df.index,z_scores.iloc[:,i], color='black', label="z_score "+df_without_date.columns[i])
+            plt.axhline(y=3, linewidth=2, color='r', label='limit z_score == 3')
             plt.xlabel("date",fontsize=14)
             plt.ylabel("z_score_"+df_without_date.columns[i],fontsize=14)
             plt.legend()
@@ -198,17 +195,65 @@ def graphZScoreByDate(df):
         plt.close()
 
 '''
+plotting the seasonal decompose graph
+'''
+def graphSeasonalDecompose(df):
+    try:
+        decomposed = seasonal_decompose(df.nbDi.astype('int'), model='additive')
+        trend, seasonal, residual = decomposed.trend, decomposed.seasonal, decomposed.resid
+        plt.figure(figsize=(24,11))
+        plt.subplot(411)
+        plt.plot(df.nbDi.astype('int'), label = 'Original', color = 'blue')
+        plt.legend(loc='upper right')
+        plt.title("Original")
+        plt.subplot(412)
+        plt.plot(trend, label = 'Tendance', color = 'black')
+        plt.legend(loc='upper right')
+        plt.title("Tendance")
+        plt.subplot(413)
+        plt.plot(seasonal, label = 'Saisonnière', color = 'black')
+        plt.legend(loc='upper right')
+        plt.title("Saisonniere")
+        plt.subplot(414)
+        plt.plot(residual, label = 'Résidus', color = 'black')
+        plt.legend(loc='upper right')
+        plt.title("Residus")
+        plt.savefig(pathInputSeasonalDecompose+'seasonal_decompose.png')
+    finally:
+        plt.close()
+
+'''
 plotting the graph of autocorrelation on nbDi
 the autocorrelation is specifiying the number of history day (LOOKBACK) to consider for the learning : data pre_precessing
+
+help to check the p in the ARIMA model (p = 80)
 '''
 def graphAutocorrelationNbDi(df):
     try:
+        plt.figure(figsize=(24,11))
         autocorrelation = autocorrelation_plot(df.nbDi.astype('int'))
-        print(df.nbDi.astype('int').autocorr())
+        #print(df.nbDi.astype('int').autocorr())
         autocorrelation.plot()
         plt.title('Autocorrelation on nbDi')
-        plt.xlabel("Lags or number of days in the datbase",fontsize=12)
+        plt.xlabel("Lags or number of days in the database",fontsize=14)
+        plt.xlim([0,50])
         plt.plot()
         plt.savefig(pathInputAutocorrelation+'autocorrelation_nbDi.png')
     finally:
         plt.close()
+
+'''
+plotting the partial autocorrelation graph
+
+help to checkthe q in the ARIMA model (q = 7)
+'''
+def graphPartialAutocorrelationNbDi(df):
+    try:
+        plt.figure(figsize=(24,11))
+        plot_pacf(df.nbDi.astype('int'))
+        plt.title('Partial autocorrelation on nbDi')
+        plt.xlabel("Lags or number of days in the database",fontsize=14)
+        plt.plot()
+        plt.savefig(pathInputAutocorrelation+'partial_autocorrelation_nbDi.png')
+    finally:
+         plt.close()
