@@ -52,8 +52,8 @@ class Graph :
         try : 
             plt.figure(figsize=(24,11))
             sns.boxplot(x=[d.year for d in df.index], y=df.nbDi.astype(int), data=df)
-            plt.title('nbDi by year')
-            plt.xlabel("date",fontsize=14)
+            plt.title('nbDi by year',fontsize=20)
+            plt.xlabel("date",fontsize=20)
             plt.plot()
             plt.savefig(self.pathInputAdvanced+'nbDi_by_year.png')
         except Exception as error:
@@ -68,8 +68,8 @@ class Graph :
         try :
             plt.figure(figsize=(24,11))
             sns.boxplot(x=[d.month for d in df.index], y=df.nbDi.astype(int), data=df)
-            plt.title('nbDi by month')
-            plt.xlabel("date",fontsize=14)
+            plt.title('nbDi by month',fontsize=20)
+            plt.xlabel("date",fontsize=20)
             plt.plot()
             plt.savefig(self.pathInputAdvanced+'nbDi_by_month_general.png')
         except Exception as error:
@@ -85,8 +85,8 @@ class Graph :
             try:
                 plt.figure(figsize=(24,11))
                 sns.boxplot(x=[d.month for d in df[df.index.year == y].index], y=df[df.index.year == y].nbDi.astype(int), data=df)
-                plt.title('nbDi by month '+str(y))
-                plt.xlabel("date",fontsize=14)
+                plt.title('nbDi by month '+str(y),fontsize=20)
+                plt.xlabel("date",fontsize=20)
                 plt.plot()
                 plt.savefig(self.pathInputAdvanced+'nbDi_by_month_'+str(y)+'.png')
             finally:

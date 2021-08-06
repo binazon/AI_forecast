@@ -7,8 +7,8 @@ class ConnectPostGreSQL :
         self.user_data = "dme"
         self.pass_data = "dme"
         self.db_data = "dme_ai"
-        self.host_data = "frpardeml1l"
-        self.port_data = "15432"
+        self.host_data = "localhost"
+        self.port_data = "5432"
 
     #connect to the postgresql database
     def connect_to_db(self) -> str:

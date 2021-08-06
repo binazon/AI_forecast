@@ -7,12 +7,11 @@ from tensorflow.keras.callbacks import EarlyStopping
 from sklearn import *
 from Preprocessing import *
 from Prediction import *
-from evaluate.ErrorsPrediction import *
+from evaluate.Evaluate import *
 from BuildingModel import * 
 from DataSetForModel import *
 from future.MeteoFuture import *
 from RequestFromDataBase import *
-from evaluate.EvaluateModel import *
 from generate_graph.Graph import *
 from CrossValidation import *
 from AnalysisOutliers import *
@@ -33,6 +32,7 @@ class Run :
 
         requestOnDataBase = RequestFromDataBase()
         graph = Graph()
+        evaluate = Evaluate()
         dateNbDiTupleArray = requestOnDataBase.requestDiByDate()
         addingHidenDay=matchingDateStartEnd(dateBetweenStartEnd(dateNbDiTupleArray)[2], dict(dateNbDiTupleArray))
         print("Start the analyse from {} to {} : the last date in the potgresql database.\nTotal number of days : {} days.".format(
@@ -178,7 +178,7 @@ class Run :
         '''
         getting the RNN model result
         '''
-        print(evaluateModel(model, dijon_train, label_train, dijon_test, label_test))
+        print(evaluate.evaluateModel(model, dijon_train, label_train, dijon_test, label_test))
         '''
         saving the graph of model history
         '''
@@ -204,7 +204,7 @@ class Run :
         '''
         mesuring performances of the model
         '''
-        generating_errors(y_test, test_predict, nb_elmnts_to_print)
+        evaluate.generating_errors(y_test, test_predict, nb_elmnts_to_print)
         '''
         predict feature : (nb_days_predict) days
         '''
