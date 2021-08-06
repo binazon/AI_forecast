@@ -3,7 +3,6 @@ sys.path.insert(1, os.path.abspath('.'))
 import numpy as np
 import pandas as pd
 import globals.Variable as global_vars
-from datetime import *
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn import *
 from Preprocessing import *
@@ -25,15 +24,15 @@ class Run :
         timestamp or look_back (this value need to stay lesser than 3 weeks in timeseries analysis)
         '''
         LOOK_BACK = 7
-        NB_DAYS_PREDICTED, EPOCHS, BATCH_SIZE, TEST_SIZE, VALIDATION_SPLIT, DROPOUT, WEIGHT_CONSTRAINT, SHUFFLE = 7, 500, 32, 0.2, 0.2, 0.1, 1, True
-        OPTIMIZER, PATIENCE = 'Adam', 20
-        rootOutputFile= "generated/files/"
+        NB_DAYS_PREDICTED, EPOCHS, BATCH_SIZE, TEST_SIZE, VALIDATION_SPLIT, DROPOUT, WEIGHT_CONSTRAINT, SHUFFLE = 7, 500, 32, 0.2, 0.2, 0.1, 1, False
+        OPTIMIZER, PATIENCE, rootOutputFile = 'Adam', 20, "generated/files/"
         '''
         generating folders root path
         '''
         if not os.path.exists(rootOutputFile):os.makedirs(rootOutputFile)
 
         requestOnDataBase = RequestFromDataBase()
+        graph = Graph()
         dateNbDiTupleArray = requestOnDataBase.requestDiByDate()
         addingHidenDay=matchingDateStartEnd(dateBetweenStartEnd(dateNbDiTupleArray)[2], dict(dateNbDiTupleArray))
         print("Start the analyse from {} to {} : the last date in the potgresql database.\nTotal number of days : {} days.".format(
@@ -41,6 +40,13 @@ class Run :
         print("Number of days where interventions exist : {} days.".format(len(dateNbDiTupleArray)))
         df=pd.DataFrame(addingHidenDay, columns=['date','nbDi'])
         df.set_index(pd.to_datetime(df.date), inplace=True)
+        '''
+        pltting nbDi by date, month, year with seaborn
+        '''
+        graph.graphNbDiByMonth(df)
+        graph.graphNbDiByYear(df)
+        graph.graphNbDiAllMonthEachYear(df)
+
         dateMeteoTupleArray = requestOnDataBase.requestMeteoByDate(len(addingHidenDay))
         '''
         adding meteo datas to the dataframe
@@ -60,33 +66,32 @@ class Run :
         '''
         decompose nbDi dataset into trend, seasonal, residual
         '''
-        graphSeasonalDecompose(df)
+        graph.graphSeasonalDecompose(df)
         '''
         checking the autocorrelation graph
         '''
-        graphAutocorrelationNbDi(df)
+        graph.graphAutocorrelationNbDi(df)
         '''
         partial autocorrelation graph
         '''
-        graphPartialAutocorrelationNbDi(df)
+        graph.graphPartialAutocorrelationNbDi(df)
         ####################################### GENERATING OUPUT FILES #####################################################################
         '''
         saving in graph folder the graphs nbDi or meteo by date
         '''
-        graphNbDiMeteoByDate(df)
+        graph.graphNbDiMeteoByDate(df)
         '''
         plot linear regression graph nbDi by date
         '''
-        linearRegressionNbDiByDate(df)
+        graph.linearRegressionNbDiByDate(df)
         '''
         plotting real data and z_score(outliers score) values
         '''
-        graphZScoreByDate(df)
+        graph.graphZScoreByDate(df)
         '''
         creating the new dijon dataframe
         '''
-        dijon=df[["nbDi", 'mto_temp(celcius)' ,'mto_temp_min(celcius)',
-        'mto_temp_max(celcius)','mto_pressure(hPa)', 'mto_humidity(%)', 'mto_visibility(km)', 'mto_wind_speed(m s)', 
+        dijon=df[["nbDi", 'mto_temp(celcius)' ,'mto_temp_min(celcius)', 'mto_temp_max(celcius)','mto_pressure(hPa)', 'mto_humidity(%)', 'mto_visibility(km)', 'mto_wind_speed(m s)', 
         'mto_clouds(%)']].astype('float')
         '''
         detecting outliers from the dataset
@@ -97,35 +102,47 @@ class Run :
         '''
         #dijon = remove_outliers(dijon)
         '''
-        creating the dataset
+        normalisation of the dijon dataset with MinMaxScaler
         '''
-        X, Y = create_lstm_dataset(dijon, LOOK_BACK)
+        transformed_df = pd.DataFrame(data = normaliseData(dijon.values), index=dijon.index)
+        '''
+        writing the dijon transformed data into a generated file
+        '''
+        try:
+            transformed_file = open(rootOutputFile+"2- dijon_df_transformed.txt", "w+")
+            transformed_file.write(str(transformed_df.shape)+'\n'+str(transformed_df.head(50)))
+        except OSError as error:
+            print("cannot not open or write in file", error)
+        finally:
+            transformed_file.close()
+        '''
+        initiate train and test dataset based on dijon dataset
+        '''
+        train_dataset = transformed_df.head(int(len(transformed_df)*(1-TEST_SIZE)))
+        test_dataset = transformed_df.tail(len(transformed_df) - int(len(transformed_df)*(1-TEST_SIZE)))
+        '''
+        build the train and test dataset (or pre-process it)
+        '''
+        dijon_train, label_train = build_lstm_dataset(train_dataset, LOOK_BACK)
+        dijon_test, label_test = build_lstm_dataset(test_dataset, LOOK_BACK)
         '''
         updating global variables
         '''
-        global_vars.x_shape = X.shape[1]
-        global_vars.y_shape = X.shape[2]
+        global_vars.x_shape = dijon_train.shape[1]
+        global_vars.y_shape = dijon_train.shape[2]
         '''
         writing output files -- dijon transformed file
         '''
         try:
-            file0,file1, file2, file3 = open(rootOutputFile+"1.1- outliers_dataframe.txt", "w+"),open(rootOutputFile+"1- init_dataframe.txt", "w+"), open(rootOutputFile+"3- X_dataset.txt", "w+"),open(rootOutputFile+"4- Y_dataset.txt", "w+")
-            file0.write(str(df_outliers.head(100)))
-            file1.write(str(dijon.head(50)))
-            file2.write(str(X.shape)+'\n'+str(X[0:50]))
-            file3.write(str(Y.shape)+'\n'+str(Y[-50:]))
+            file0,file1, file2, file3 = open(rootOutputFile+"1.1- outliers_dataframe.txt", "w+"),open(rootOutputFile+"1- init_dataframe.txt", "w+"), open(rootOutputFile+"3- train_dataset_transformed.txt", "w+"),open(rootOutputFile+"4- test_dataset_transformed.txt", "w+")
+            file0.write(str(df_outliers.shape)+'\n'+str(df_outliers.head(100)))
+            file1.write(str(dijon.shape)+'\n'+str(dijon.head(50)))
+            file2.write(str(train_dataset.shape)+'\n'+str(train_dataset.head(50)))
+            file3.write(str(test_dataset.shape)+'\n'+str(test_dataset.head(50)))
         except OSError as error:
             print("cannot not open or write in file", error)
         finally:
             for i in [file0,file1, file2, file3]:i.close()
-        '''
-        spliting data_set manually
-        '''
-        dijon_train, dijon_test, label_train, label_test=model_selection.train_test_split(X, Y, test_size=TEST_SIZE, shuffle=SHUFFLE)
-        '''dijon_train = X[:int(len(X)*(1-TEST_SIZE))]
-        label_train = Y[:int(len(X)*(1-TEST_SIZE))]
-        dijon_test = X[int(len(X)*(1-TEST_SIZE)):]
-        label_test = Y[int(len(X)*(1-TEST_SIZE)):]'''
         '''
         searching good hyperparameters for the model
         hyperparams generated there are replaced in the model
@@ -156,7 +173,7 @@ class Run :
         EarlyStopping to prevent the overfitting on the losses
         '''
         es= EarlyStopping(monitor='val_loss', verbose=1, patience=PATIENCE), 
-        history = model.fit(dijon_train, label_train, verbose=1, validation_split=VALIDATION_SPLIT, epochs=EPOCHS, shuffle=False,
+        history = model.fit(dijon_train, label_train, verbose=1, validation_split=VALIDATION_SPLIT, epochs=EPOCHS, shuffle=SHUFFLE,
         batch_size=BATCH_SIZE, callbacks=[es])
         '''
         getting the RNN model result
@@ -165,7 +182,7 @@ class Run :
         '''
         saving the graph of model history
         '''
-        graphHistoryModel(history)
+        graph.graphHistoryModel(history)
         ####################################### PREDICTIONS #####################################################################
         '''
         treatment tests values
@@ -182,8 +199,8 @@ class Run :
         '''
         plotting truth and nbDi prediction on nb_elmnts_to_print first and nb_elmnts_to_print last
         '''
-        graphTruthOnPrediction(nb_elmnts_to_print, y_test, test_predict)
-        graphTruthOnPrediction(-1 * nb_elmnts_to_print, y_test, test_predict)
+        graph.graphTruthOnPrediction(nb_elmnts_to_print, y_test, test_predict)
+        graph.graphTruthOnPrediction(-1 * nb_elmnts_to_print, y_test, test_predict)
         '''
         mesuring performances of the model
         '''
@@ -196,11 +213,11 @@ class Run :
         fromDateToNumberAfter = listDatesBetweenDateAndNumber(date.fromisoformat(
             dijon_timestamps[len(dijon_timestamps)-1]), NB_DAYS_PREDICTED)
         dijon_dates = np.array(fromDateToNumberAfter, dtype='datetime64[D]').astype(str)
-        graphPredictNextDays(LAST_NB_DATA, NB_DAYS_PREDICTED, dijon, feature, dijon_timestamps, dijon_dates)
+        graph.graphPredictNextDays(LAST_NB_DATA, NB_DAYS_PREDICTED, dijon, feature, dijon_timestamps, dijon_dates)
         '''
         graph with just feature informations
         '''
-        graphFeatureInfos(dijon_dates, feature, NB_DAYS_PREDICTED)
+        graph.graphFeatureInfos(dijon_dates, feature, NB_DAYS_PREDICTED)
         '''
         closing the postGreSQL database 
         '''

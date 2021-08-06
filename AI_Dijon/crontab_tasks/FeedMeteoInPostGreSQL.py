@@ -6,7 +6,7 @@ from datetime import *
 from connect_database.ConnectPostGreSQL import *
 
 ''''
-this code is turnning on the servers (development, pre-production and production) 
+this python file is turnning on the servers (development, pre-production and production) 
 and is executed each day at 00 o'clock 
 '''
 

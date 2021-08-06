@@ -5,28 +5,17 @@ from scipy.sparse import data
 from sklearn.preprocessing import *
 from Preprocessing import *
 
-rootOutputFile = "generated/files/"
-
-'''
-generating folders root path
-'''
-if not os.path.exists(rootOutputFile):os.makedirs(rootOutputFile)
-
 #creating the lstm dataset
-def create_lstm_dataset(df, look):
+def build_lstm_dataset(transformed_df, look):
     try:
-        number_of_rows, number_of_features = df.shape[0], df.shape[1]
-        transformed_df = pd.DataFrame(data = normaliseData(df.values), index=df.index)
-        #writing the dijon trnsformed file
-        f = open(rootOutputFile+"2- dijon_df_transformed.txt", "w+")
-        f.write(str(transformed_df.head(50)))
+        number_of_rows, number_of_features = transformed_df.shape[0], transformed_df.shape[1]
         train = np.empty([number_of_rows - look, look, number_of_features], dtype='float')
         label = np.empty([number_of_rows - look, 1])
         for i in range(number_of_rows-look):
             train[i] = transformed_df.iloc[i:i+look, 0:number_of_features]
             label[i] = transformed_df.iloc[i+look:i+look+1, 0:1]
-    finally:
-        f.close()
+    except Exception as error:
+        print("Error in the dataset build :", error)
     return train, label 
 
 #using data preprocessing - simple LSTM RNN Model
