@@ -22,7 +22,8 @@ class Graph :
     '''
     constructor of the class of the connexion
     '''
-    def __init__(self):
+    def __init__(self, df):
+        self.df = df
         self.pathInput = "generated/graphs/input/samples/"
         self.pathInputAdvanced = "generated/graphs/input/advanced/"
         self.pathInputAnalysis = "generated/graphs/input_analysis/outliers/"
@@ -48,10 +49,10 @@ class Graph :
     '''
     plotting graph of nbDi by year
     '''
-    def graphNbDiByYear(self, df):
+    def graphNbDiByYear(self):
         try : 
             plt.figure(figsize=(24,11))
-            sns.boxplot(x=[d.year for d in df.index], y=df.nbDi.astype(int), data=df)
+            sns.boxplot(x=[d.year for d in self.df.index], y=self.df.nbDi.astype(int), data=self.df)
             plt.title('nbDi by year',fontsize=20)
             plt.xlabel("date",fontsize=20)
             plt.plot()
@@ -64,10 +65,10 @@ class Graph :
     '''
     plotting graph of nbDi for all months
     '''
-    def graphNbDiByMonth(self, df):
+    def graphNbDiByMonth(self):
         try :
             plt.figure(figsize=(24,11))
-            sns.boxplot(x=[d.month for d in df.index], y=df.nbDi.astype(int), data=df)
+            sns.boxplot(x=[d.month for d in self.df.index], y=self.df.nbDi.astype(int), data=self.df)
             plt.title('nbDi by month',fontsize=20)
             plt.xlabel("date",fontsize=20)
             plt.plot()
@@ -80,11 +81,11 @@ class Graph :
     '''
     plotting graph of nbDi for all months each year
     '''
-    def graphNbDiAllMonthEachYear(self, df):
-        for y in set(list(df.index.year)):
+    def graphNbDiAllMonthEachYear(self):
+        for y in set(list(self.df.index.year)):
             try:
                 plt.figure(figsize=(24,11))
-                sns.boxplot(x=[d.month for d in df[df.index.year == y].index], y=df[df.index.year == y].nbDi.astype(int), data=df)
+                sns.boxplot(x=[d.month for d in self.df[self.df.index.year == y].index], y=self.df[self.df.index.year == y].nbDi.astype(int), data=self.df)
                 plt.title('nbDi by month '+str(y),fontsize=20)
                 plt.xlabel("date",fontsize=20)
                 plt.plot()
@@ -95,54 +96,56 @@ class Graph :
     '''
     saving in graphs/ folder the graphs nbDi or meteo by date
     '''
-    def graphNbDiMeteoByDate(self, df):
-        nb_days = 90
+    def graphNbDiMeteoByDate(self, test_size):
+        nb_days = 120
+        nb_months = nb_days//30
         try:
-            for i in range(1, len(df.columns)):
+            for i in range(1, len(self.df.columns)):
                 if(i==1):
                     '''
-                    nbDi by date the 3 last month -- get more details
+                    nbDi by date the nb_months last month
                     '''
                     try:
                         ax = plt.subplots(figsize=(24,11))[1]
-                        plt.title(str(nb_days)+" last_days_nbDi_by_date")
+                        plt.title(str(nb_days)+" last_days_nbDi_by_date or last "+str(nb_months)+" months")
                         ax.text(3, 38, 'weekends in red on x axis', style='normal',fontsize=18, bbox={'facecolor': 'white', 'alpha': 0.5, 'pad': 10})
-                        ax.plot(np.arange(nb_days), df[df.columns[1]][-nb_days:].astype(float),'-o', color='blue', label=df.columns[1])
+                        ax.plot(np.arange(nb_days), self.df[self.df.columns[1]][-nb_days:].astype(float),'-o', color='blue', label=self.df.columns[1])
                         ax.set_xticks(np.arange(nb_days))
-                        ax.set_xticklabels(np.array(df.index.values[-1 * nb_days:], dtype='datetime64[D]'), rotation=90)
+                        ax.set_xticklabels(np.array(self.df.index.values[-1 * nb_days:], dtype='datetime64[D]'), rotation=90)
                         for xtick in ax.get_xticklabels():
                             if(pd.to_datetime(xtick.get_text()).weekday()>4):xtick.set_color("red")
                         plt.xlabel("date",fontsize=14)
-                        plt.ylabel(df.columns[1],fontsize=14)
+                        plt.ylabel(self.df.columns[1],fontsize=14)
                         plt.legend()
-                        plt.savefig(self.pathInputAdvanced+df.columns[1]+'_by_date_last_3_months.png')
+                        plt.savefig(self.pathInputAdvanced+self.df.columns[1]+'_by_date_last_'+str(nb_months)+'_months.png')
                     except Exception as error:
-                        print("Error when plotting nbDiLast3Months", error)
+                        print("Error when plotting nbDiLast"+str(nb_months)+"Months", error)
                     finally:
                         plt.close()
                 #plotting all feature of the dataframe by date
                 plt.subplots(figsize=(24,11))
-                plt.title(df.columns[i]+' by date')
-                plt.plot(df[df.columns[i]].astype(float), color='blue', label=df.columns[i])
+                plt.title(self.df.columns[i]+' by date')
+                plt.plot(self.df[self.df.columns[i]][:int(len(self.df)*(1-test_size))].astype(float), color='blue', label=self.df.columns[i]+" --train")
+                plt.plot(self.df[self.df.columns[i]][int(len(self.df)*(1-test_size)):].astype(float), color='gray', label=self.df.columns[i]+" --test")
                 plt.xlabel("date",fontsize=14)
-                plt.ylabel(df.columns[i],fontsize=14)
+                plt.ylabel(self.df.columns[i],fontsize=14)
                 plt.legend()
-                plt.savefig(self.pathInput+'1.'+str(i)+ '- '+df.columns[i]+'_by_date.png')
+                plt.savefig(self.pathInput+'1.'+str(i)+ '- '+self.df.columns[i]+'_by_date.png')
         except Exception as error:
-            print("Error when plotting "+str(df.columns[i])+"ByDate : \n", error)
+            print("Error when plotting "+str(self.df.columns[i])+"ByDate : \n", error)
         finally:
             plt.close()
 
     '''
     plotting the graph of linear regression of nbDi by date
     '''
-    def linearRegressionNbDiByDate(self, df):
-        xdata=np.linspace(start=1, stop=len(df), num=len(df))
+    def linearRegressionNbDiByDate(self):
+        xdata=np.linspace(start=1, stop=len(self.df), num=len(self.df))
         try:
-            popt, pcov = curve_fit(self.Pol, xdata, df['nbDi'].astype('float'))
+            popt = curve_fit(self.Pol, xdata, self.df['nbDi'].astype('float'))[0]
             plt.subplots(figsize=(24,11))
             plt.title('linear_regression_nbDi_by_date.png')
-            plt.scatter(xdata,df['nbDi'].astype('float'), marker='+', color='blue')
+            plt.scatter(xdata,self.df['nbDi'].astype('float'), marker='+', color='blue')
             plt.plot(xdata, self.Pol(xdata, *popt),color='black')
             plt.ylabel("nbDi",fontsize=14)
             plt.savefig(self.pathInputRegression+'linear_regression_nbDi_by_date.png')
@@ -251,8 +254,8 @@ class Graph :
 
     values thaht are higher than 3 are the outliers.
     '''
-    def graphZScoreByDate(self, df):
-        df_without_date = df.iloc[:, 1:].astype('float')
+    def graphZScoreByDate(self):
+        df_without_date = self.df.iloc[:, 1:].astype('float')
         z_scores = pd.DataFrame(zscore(df_without_date))
         try:
             for i in range(df_without_date.shape[1]):
@@ -260,8 +263,8 @@ class Graph :
                 plt.subplots(figsize=(24,11))
                 plt.text(0, 10, 'value is outlier if z_score(value) > limit z_score', style='normal',fontsize=30, bbox={'facecolor': 'none','alpha': 0.5, 'pad': 10})
                 plt.title('z_score '+df_without_date.columns[i]+' by date')
-                plt.plot(df.index, df_without_date[df_without_date.columns[i]].astype(float), color='blue', label=df_without_date.columns[i])
-                plt.plot(df.index,z_scores.iloc[:,i], color='black', label="z_score "+df_without_date.columns[i])
+                plt.plot(self.df.index, df_without_date[df_without_date.columns[i]].astype(float), color='blue', label=df_without_date.columns[i])
+                plt.plot(self.df.index,z_scores.iloc[:,i], color='black', label="z_score "+df_without_date.columns[i])
                 plt.axhline(y=3, linewidth=2, color='r', label='limit z_score == 3')
                 plt.xlabel("date",fontsize=14)
                 plt.ylabel("z_score_"+df_without_date.columns[i],fontsize=14)
@@ -275,13 +278,13 @@ class Graph :
     '''
     plotting the seasonal decompose graph
     '''
-    def graphSeasonalDecompose(self, df):
+    def graphSeasonalDecompose(self):
         try:
-            decomposed = seasonal_decompose(df.nbDi.astype('int'), model='additive')
+            decomposed = seasonal_decompose(self.df.nbDi.astype('int'), model='additive')
             trend, seasonal, residual = decomposed.trend, decomposed.seasonal, decomposed.resid
             plt.figure(figsize=(24,11))
             plt.subplot(411)
-            plt.plot(df.nbDi.astype('int'), label = 'Original', color = 'blue')
+            plt.plot(self.df.nbDi.astype('int'), label = 'Original', color = 'blue')
             plt.legend(loc='upper right')
             plt.title("Original")
             plt.subplot(412)
@@ -308,11 +311,11 @@ class Graph :
 
     help to check the p in the ARIMA model (p = 80)
     '''
-    def graphAutocorrelationNbDi(self, df):
+    def graphAutocorrelationNbDi(self):
         try:
             plt.figure(figsize=(24,11))
-            autocorrelation = autocorrelation_plot(df.nbDi.astype('int'))
-            #print(df.nbDi.astype('int').autocorr())
+            autocorrelation = autocorrelation_plot(self.df.nbDi.astype('int'))
+            #print("best autocorrelation is", df.nbDi.astype('int').autocorr())
             autocorrelation.plot()
             plt.title('Autocorrelation on nbDi')
             plt.xlabel("Lags or number of days in the database",fontsize=14)
@@ -329,10 +332,10 @@ class Graph :
 
     help to checkthe q in the ARIMA model (q = 7)
     '''
-    def graphPartialAutocorrelationNbDi(self, df):
+    def graphPartialAutocorrelationNbDi(self):
         try:
             plt.figure(figsize=(24,11))
-            plot_pacf(df.nbDi.astype('int'))
+            plot_pacf(self.df.nbDi.astype('int'))
             plt.title('Partial autocorrelation on nbDi')
             plt.xlabel("Lags or number of days in the database",fontsize=14)
             plt.plot()

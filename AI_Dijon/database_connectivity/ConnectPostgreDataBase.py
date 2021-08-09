@@ -1,6 +1,6 @@
 import psycopg2
 
-class ConnectPostGreSQL :
+class ConnectPostgreDataBase :
 
     #constructor of the class of the connexion
     def __init__(self):

@@ -3,7 +3,7 @@ import os,sys
 sys.path.insert(1, os.path.abspath('.'))
 import requests
 from datetime import *
-from connect_database.ConnectPostGreSQL import *
+from database_connectivity.ConnectPostgreDataBase import *
 
 ''''
 this python file is turnning on the servers (development, pre-production and production) 
@@ -16,7 +16,7 @@ apiCurrentMeteo, conn = "https://api.openweathermap.org/data/2.5/weather?q="+str
 #feed the database with the current day meteo informations
 try:
     insert_command = "insert into t_meteo_mto values(%s,%s,%s,%s,%s,%s,%s,%s,%s)"
-    cursor = ConnectPostGreSQL().connect_to_db().cursor()
+    cursor = ConnectPostgreDataBase().connect_to_db().cursor()
     response = requests.get(apiCurrentMeteo)
     cursor.execute("select count(*) from t_meteo_mto where mto_date='"+today+"'")
     if(response.status_code == 200 and cursor.fetchone()[0]==0):

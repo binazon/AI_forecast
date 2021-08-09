@@ -9,14 +9,16 @@ from Preprocessing import *
 from Prediction import *
 from evaluate.Evaluate import *
 from BuildingModel import * 
-from DataSetForModel import *
 from future.MeteoFuture import *
-from RequestFromDataBase import *
 from generate_graph.Graph import *
-from CrossValidation import *
+from GridSearchCV import *
 from AnalysisOutliers import *
-from connect_database.ConnectPostGreSQL import *
+from database_connectivity.RequestFromDataBase import *
+from database_connectivity.ConnectPostgreDataBase import *
 
+'''
+class used to run the prediction project
+'''
 class Run :
     def main():
         '''
@@ -29,24 +31,34 @@ class Run :
         generating folders root path
         '''
         if not os.path.exists(rootOutputFile):os.makedirs(rootOutputFile)
-
-        requestOnDataBase = RequestFromDataBase()
-        graph = Graph()
-        evaluate = Evaluate()
+        ####################################### PRE-PREPROCESSING OF DATA #####################################################################
+        processing, requestOnDataBase = Preprocessing(), RequestFromDataBase()
         dateNbDiTupleArray = requestOnDataBase.requestDiByDate()
-        addingHidenDay=matchingDateStartEnd(dateBetweenStartEnd(dateNbDiTupleArray)[2], dict(dateNbDiTupleArray))
-        print("Start the analyse from {} to {} : the last date in the potgresql database.\nTotal number of days : {} days.".format(
-        dateBetweenStartEnd(dateNbDiTupleArray)[0], dateBetweenStartEnd(dateNbDiTupleArray)[1], len(addingHidenDay)))
+        addingHidenDay=processing.matchingDateStartEnd(processing.dateBetweenStartEnd(dateNbDiTupleArray)[2], dict(dateNbDiTupleArray))
+        print("Start the analyse from {} to {} : the last date in the potgresql database.\nTotal number of days : {} days.".format(processing.dateBetweenStartEnd(dateNbDiTupleArray)[0],
+         processing.dateBetweenStartEnd(dateNbDiTupleArray)[1], len(addingHidenDay)))
         print("Number of days where interventions exist : {} days.".format(len(dateNbDiTupleArray)))
         df=pd.DataFrame(addingHidenDay, columns=['date','nbDi'])
         df.set_index(pd.to_datetime(df.date), inplace=True)
         '''
+        test stationnarity
+        '''
+        isStat = processing.isStationnary(df)
+        print(isStat[0])
+        if(isStat[1] == False):
+            print("Time series is not stationnary")
+            processing.stationnaryData(df, timestamp=LOOK_BACK)
+        
+        graph = Graph(df)
+        '''
         pltting nbDi by date, month, year with seaborn
         '''
-        graph.graphNbDiByMonth(df)
-        graph.graphNbDiByYear(df)
-        graph.graphNbDiAllMonthEachYear(df)
-
+        graph.graphNbDiByMonth()
+        graph.graphNbDiByYear()
+        graph.graphNbDiAllMonthEachYear()
+        '''
+        checking meteo datas
+        '''
         dateMeteoTupleArray = requestOnDataBase.requestMeteoByDate(len(addingHidenDay))
         '''
         adding meteo datas to the dataframe
@@ -62,32 +74,31 @@ class Run :
         '''
         loading the futureMeteoByDate.csv generated in the project
         '''
-        futureMeteo = loadCsvFile("generated/future/CSV/futureMeteoByDate.csv")
+        futureMeteo = processing.loadCsvFile("generated/future/CSV/futureMeteoByDate.csv")
         '''
         decompose nbDi dataset into trend, seasonal, residual
         '''
-        graph.graphSeasonalDecompose(df)
+        graph.graphSeasonalDecompose()
         '''
         checking the autocorrelation graph
         '''
-        graph.graphAutocorrelationNbDi(df)
+        graph.graphAutocorrelationNbDi()
         '''
         partial autocorrelation graph
         '''
-        graph.graphPartialAutocorrelationNbDi(df)
-        ####################################### GENERATING OUPUT FILES #####################################################################
+        graph.graphPartialAutocorrelationNbDi()
         '''
         saving in graph folder the graphs nbDi or meteo by date
         '''
-        graph.graphNbDiMeteoByDate(df)
+        graph.graphNbDiMeteoByDate(TEST_SIZE)
         '''
         plot linear regression graph nbDi by date
         '''
-        graph.linearRegressionNbDiByDate(df)
+        graph.linearRegressionNbDiByDate()
         '''
         plotting real data and z_score(outliers score) values
         '''
-        graph.graphZScoreByDate(df)
+        graph.graphZScoreByDate()
         '''
         creating the new dijon dataframe
         '''
@@ -104,7 +115,7 @@ class Run :
         '''
         normalisation of the dijon dataset with MinMaxScaler
         '''
-        transformed_df = pd.DataFrame(data = normaliseData(dijon.values), index=dijon.index)
+        transformed_df = pd.DataFrame(data = processing.normaliseData(dijon.values), index=dijon.index)
         '''
         writing the dijon transformed data into a generated file
         '''
@@ -123,8 +134,8 @@ class Run :
         '''
         build the train and test dataset (or pre-process it)
         '''
-        dijon_train, label_train = build_lstm_dataset(train_dataset, LOOK_BACK)
-        dijon_test, label_test = build_lstm_dataset(test_dataset, LOOK_BACK)
+        dijon_train, label_train = processing.build_dataset(train_dataset, LOOK_BACK)
+        dijon_test, label_test = processing.build_dataset(test_dataset, LOOK_BACK)
         '''
         updating global variables
         '''
@@ -148,8 +159,8 @@ class Run :
         hyperparams generated there are replaced in the model
         '''
         '''hyper_params = fixHyperParamsGridSearch(buildModelLSTM, dijon_train, label_train)
-        file_res = open(rootOutputFile+"hyper_params", "w+")
-        file_res.write(str(hyper_params))
+        file_res = open(rootOutputFile+"hyper_params", "a")
+        file_res.write("\n"+str(hyper_params))
         file_res.close()'''
         '''
         writting in the output files
@@ -165,52 +176,82 @@ class Run :
             print("cannot not open or write in file", error)
         finally:
             for i in [file1, file2, file3, file4]:i.close()
+        ####################################### TRAINING #####################################################################
         '''
         building the RNN model
         '''
-        model = buildModelLSTM()
+        model = buildModelLSTM(64)
         '''
         EarlyStopping to prevent the overfitting on the losses
         '''
-        es= EarlyStopping(monitor='val_loss', verbose=1, patience=PATIENCE), 
-        history = model.fit(dijon_train, label_train, verbose=1, validation_split=VALIDATION_SPLIT, epochs=EPOCHS, shuffle=SHUFFLE,
+        es= EarlyStopping(monitor='val_loss', patience=PATIENCE), 
+        history = model.fit(dijon_train, label_train, validation_split=VALIDATION_SPLIT, epochs=EPOCHS, shuffle=SHUFFLE,
         batch_size=BATCH_SIZE, callbacks=[es])
         '''
         getting the RNN model result
         '''
-        print(evaluate.evaluateModel(model, dijon_train, label_train, dijon_test, label_test))
+        evaluate = Evaluate(model)
+        print(evaluate.evaluateModel(dijon_train, label_train, dijon_test, label_test))
         '''
         saving the graph of model history
         '''
         graph.graphHistoryModel(history)
         ####################################### PREDICTIONS #####################################################################
+        
+        
+
         '''
-        treatment tests values
+        treatment train values
         '''
-        label_test, nb_elmnts_to_print = np.repeat(label_test, dijon.shape[1], axis=-1), 50
-        y_test = (unormaliseData(label_test)[:,0]).reshape(label_test.shape[0], 1)
+        label_train, nb_elmnts_to_print = np.repeat(label_train, dijon.shape[1], axis=-1), 50
+        y_train = (processing.unormaliseData(label_train)[:,0]).reshape(label_train.shape[0], 1)
         '''
-        testing predicted values
+        train values on predicted train values
         '''
-        test_predict=model.predict(dijon_test, batch_size=32, verbose = 1)
-        test_predict = np.repeat(test_predict, dijon.shape[1], axis=-1)
-        test_predict = (unormaliseData(test_predict)[:,0]).reshape(test_predict.shape[0], 1)
-        print('nb elements in the test dataset :',len(y_test) , 'elements\nnumber of elements plotten :', nb_elmnts_to_print, 'first test éléments')
+        train_predict=model.predict(dijon_train, batch_size=32, verbose = 1)
+        train_predict = np.repeat(train_predict, dijon.shape[1], axis=-1)
+        train_predict = (processing.unormaliseData(train_predict)[:,0]).reshape(train_predict.shape[0], 1)
+        print('nb elements in the test dataset :',len(y_train) , 'elements\nnumber of elements plotten :', nb_elmnts_to_print, 'first test éléments')
         '''
         plotting truth and nbDi prediction on nb_elmnts_to_print first and nb_elmnts_to_print last
         '''
-        graph.graphTruthOnPrediction(nb_elmnts_to_print, y_test, test_predict)
-        graph.graphTruthOnPrediction(-1 * nb_elmnts_to_print, y_test, test_predict)
+        graph.graphTruthOnPrediction(nb_elmnts_to_print, y_train, train_predict)
+        graph.graphTruthOnPrediction(-1 * nb_elmnts_to_print, y_train, train_predict)
+        '''
+        mesuring performances of the model on known(train) values
+        '''
+        evaluate.generating_errors(y_train, train_predict, nb_elmnts_to_print)
+
+        
+        
+        '''
+        treatment tests values
+        '''
+        #label_test, nb_elmnts_to_print = np.repeat(label_test, dijon.shape[1], axis=-1), 50
+        #y_test = (unormaliseData(label_test)[:,0]).reshape(label_test.shape[0], 1)
+        '''
+        testing predicted values
+        '''
+        #test_predict=model.predict(dijon_test, batch_size=32, verbose = 1)
+        #test_predict = np.repeat(test_predict, dijon.shape[1], axis=-1)
+        #test_predict = (unormaliseData(test_predict)[:,0]).reshape(test_predict.shape[0], 1)
+        #print('nb elements in the test dataset :',len(y_test) , 'elements\nnumber of elements plotten :', nb_elmnts_to_print, 'first test éléments')
+        '''
+        plotting truth and nbDi prediction on nb_elmnts_to_print first and nb_elmnts_to_print last
+        '''
+        #graph.graphTruthOnPrediction(nb_elmnts_to_print, y_test, test_predict)
+        #graph.graphTruthOnPrediction(-1 * nb_elmnts_to_print, y_test, test_predict)
         '''
         mesuring performances of the model
         '''
-        evaluate.generating_errors(y_test, test_predict, nb_elmnts_to_print)
+        #evaluate.generating_errors(y_test, test_predict, nb_elmnts_to_print)
         '''
         predict feature : (nb_days_predict) days
         '''
-        feature, LAST_NB_DATA = np.rint(predictNextDays(model, dijon, NB_DAYS_PREDICTED, LOOK_BACK, futureMeteo)), 62
+        prediction = Prediction(model, dijon, NB_DAYS_PREDICTED, LOOK_BACK)
+        feature, LAST_NB_DATA = np.rint(prediction.predictNextDays( futureMeteo)), 62
         dijon_timestamps = np.array(pd.DataFrame(df[["date"]]).tail(LAST_NB_DATA)).flatten()
-        fromDateToNumberAfter = listDatesBetweenDateAndNumber(date.fromisoformat(
+        fromDateToNumberAfter = processing.listDatesBetweenDateAndNumber(date.fromisoformat(
             dijon_timestamps[len(dijon_timestamps)-1]), NB_DAYS_PREDICTED)
         dijon_dates = np.array(fromDateToNumberAfter, dtype='datetime64[D]').astype(str)
         graph.graphPredictNextDays(LAST_NB_DATA, NB_DAYS_PREDICTED, dijon, feature, dijon_timestamps, dijon_dates)

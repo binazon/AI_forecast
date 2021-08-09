@@ -3,7 +3,7 @@ import os,sys
 sys.path.insert(1, os.path.abspath('.'))
 from datetime import *
 from Preprocessing import *
-from connect_database.ConnectPostGreSQL import *
+from database_connectivity.ConnectPostgreDataBase import *
 
 class RequestFromDataBase :
    
@@ -11,7 +11,7 @@ class RequestFromDataBase :
     defining the constructor of the class
     '''
     def __init__(self) -> None:
-        self.conn = ConnectPostGreSQL().connect_to_db()
+        self.conn = ConnectPostgreDataBase().connect_to_db()
 
     '''
     get lines or datas of the view di_by_date
