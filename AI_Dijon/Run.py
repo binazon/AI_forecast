@@ -12,7 +12,6 @@ from Model import *
 from Future.MeteoFuture import *
 from Graph.Graph import *
 from GridSearchCV import *
-from AnalysisOutliers import *
 from DatabaseConnectivity.RequestFromDataBase import *
 from DatabaseConnectivity.ConnectPostgreDataBase import *
 
@@ -113,11 +112,11 @@ class Run :
         '''
         detecting outliers from the dataset
         '''
-        df_outliers = detect_outliers_2(dijon_stationnary)
+        df_outliers = processing.detect_outliers_2(dijon_stationnary)
         '''
         Dataframe dijon_stationnary without outliers
         '''
-        #dijon = remove_outliers(dijon_stationnary)
+        #dijon = processing.remove_outliers(dijon_stationnary)
         '''
         normalisation of the dijon_stationnary dataset with MinMaxScaler
         '''
@@ -164,10 +163,10 @@ class Run :
         searching good hyperparameters for the model
         hyperparams generated there are replaced in the model
         '''
-        hyper_params = fixHyperParamsGridSearch(model.buildModelLSTM, dijon_train, label_train)
+        '''hyper_params = fixHyperParamsGridSearch(model.buildModelLSTM, dijon_train, label_train)
         file_res = open(rootOutputFile+"hyper_params_grid_search", "a")
         file_res.write("\n"+str(hyper_params))
-        file_res.close()
+        file_res.close()'''
         '''
         writting in the output files
         '''
@@ -225,7 +224,7 @@ class Run :
         '''
         evaluate.generating_errors(y_train, train_predict, nb_elmnts_to_print)
 
-        print("\n\n-- Evaluation test on prediction")
+        print("\n-- Evaluation test on prediction")
         
         '''
         evaluation of test values predicted

@@ -186,9 +186,9 @@ class Graph :
             ''' 
             plt.title('prediction sur valeurs réelles : '+str(len(y_test))+' elements total')
             plt.plot(y_test[:100],'-o', color="blue", label="réel nbDi")
-            plt.plot(test_predict[:100],'-o', color="green",label="prédiction nbDi")
+            plt.plot(test_predict[:100],'-o', color="green",label="prédiction test nbDi")
             plt.legend()
-            plt.savefig(self.pathOutput+'3- predictOnTestValues'+'.png')
+            plt.savefig(self.pathOutput+'3.2- predictOnTestValues'+'.png')
         except Exception as error:
             print("Error when plotting prediction on test values", error)
         finally:
@@ -207,9 +207,9 @@ class Graph :
             ''' 
             plt.title('prediction sur valeurs réelles : '+str(len(y_train))+' elements total')
             plt.plot(y_train[:100],'-o', color="blue", label="réel nbDi")
-            plt.plot(train_predict[:100],'-o', color="green",label="prédiction nbDi")
+            plt.plot(train_predict[:100],'-o', color="green",label="prédiction train nbDi")
             plt.legend()
-            plt.savefig(self.pathOutput+'3- predictOnTrainValues'+'.png')
+            plt.savefig(self.pathOutput+'3.1- predictOnTrainValues'+'.png')
         except Exception as error:
             print("Error when plotting prediction on train values", error)
         finally:

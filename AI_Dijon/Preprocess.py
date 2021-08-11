@@ -6,6 +6,8 @@ from deprecated import deprecated
 from sklearn.preprocessing import *
 from datetime import *
 from statsmodels.tsa.stattools import *
+from scipy.stats import zscore
+
 
 '''
 class to process of the data
@@ -156,6 +158,42 @@ class Preprocess:
             train.append(transformed_df.iloc[i - look:i, 0:transformed_df.shape[1]])
             label.append(transformed_df.iloc[i:i+1,0])
         return np.array(train), np.array(label)
+
+    '''
+    this method allows to  detect outliers in our dataset for each element of the data we substracted 
+    the mean and  we divide the result by the standard deviation
+
+    return the dataframe
+    '''
+    def detect_outliers(self, data):
+        threshold, array, outlier =3, np.array(data), {}
+        for j in range(len(array[0])):
+            mean, std = np.mean(array[:, j]), np.std(array[:, j])
+            tab= []
+            for i in range(len(array[:, j])):
+                z_score= (array[:, j][i] - mean)/std
+                if np.abs(z_score) > threshold: tab.append(i)
+            if(len(tab) != 0): outlier[j] = tab
+        return data.iloc[sorted(set(sum([y for y in outlier.values()], [])))]
+
+    '''
+    this method allows to  detect outliers in our dataset with scipy.stats.z_score 
+    retunning dataframe
+    '''
+    def detect_outliers_2(self, df):
+        z_scores = zscore(df)
+        abs_z_scores = np.abs(z_scores)
+        filtered_entries = (abs_z_scores < 3).all(axis=1)
+        return df[~filtered_entries]
+
+    '''
+    we build up the dataframe without outliers and we return a filtered dataframe
+    '''
+    def remove_outliers(self, df):
+        z_scores = zscore(df)
+        abs_z_scores = np.abs(z_scores)
+        filtered_entries = (abs_z_scores < 3).all(axis=1)
+        return df[filtered_entries]
 
     '''
     normalising data with values between 0 and 1
