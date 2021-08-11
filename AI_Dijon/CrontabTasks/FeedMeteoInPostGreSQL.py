@@ -3,7 +3,7 @@ import os,sys
 sys.path.insert(1, os.path.abspath('.'))
 import requests
 from datetime import *
-from database_connectivity.ConnectPostgreDataBase import *
+from DatabaseConnectivity.ConnectPostgreDataBase import *
 
 ''''
 this python file is turnning on the servers (development, pre-production and production) 

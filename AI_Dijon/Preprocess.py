@@ -10,7 +10,7 @@ from statsmodels.tsa.stattools import *
 '''
 class to process of the data
 '''
-class Preprocessing:
+class Preprocess:
     def __init__(self) -> None:
         self.scaler = MinMaxScaler()
 
@@ -124,7 +124,7 @@ class Preprocessing:
     '''
     def isStationnary(self, df):
         array = adfuller(df.nbDi.astype('int'))
-        res = "--- Test stationnarity : Argumented Dickey Fuller ADF test"
+        res = "--- Test stationnarity : Argumented Dickey Fuller ADF test\n"
         res +=  "ADF statistic : "+str(array[0])+"\np-value : "+str(array[1])
         return (res, True) if array[0] < array[4]["5%"] else (res, False)
 
@@ -132,7 +132,7 @@ class Preprocessing:
     this method put the data stationnary
     '''
     def stationnaryData(self, df, timestamp):
-        df['stationnary_nbDi']=df.nbDi.astype('int')-df.nbDi.astype('int').shift(timestamp)
+        df['nbDi_stationnary']=df.nbDi.astype('int') - df.nbDi.astype('int').shift(timestamp)
 
     #creating the lstm dataset
     def build_dataset(self, transformed_df, look):

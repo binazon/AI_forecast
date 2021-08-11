@@ -1,7 +1,7 @@
 from typing import List
 import numpy as np
 import pandas as pd
-from Preprocessing import *
+from Preprocess import *
 
 '''
 class for prediction methods and attributes
@@ -16,7 +16,7 @@ class Prediction :
         self.array_enter = array_enter
         self.nbdays = nbdays
         self.look_back = look_back
-        self.processing = Preprocessing()
+        self.processing = Preprocess()
 
     #predict data in the next nbdays
     def predictNextDays(self, futureMeteo) -> List:

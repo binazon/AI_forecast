@@ -100,8 +100,8 @@ class Graph :
         nb_days = 120
         nb_months = nb_days//30
         try:
-            for i in range(1, len(self.df.columns)):
-                if(i==1):
+            for i in range(len(self.df.columns)):
+                if(i==0):
                     '''
                     nbDi by date the nb_months last month
                     '''
@@ -109,15 +109,15 @@ class Graph :
                         ax = plt.subplots(figsize=(24,11))[1]
                         plt.title(str(nb_days)+" last_days_nbDi_by_date or last "+str(nb_months)+" months")
                         ax.text(3, 38, 'weekends in red on x axis', style='normal',fontsize=18, bbox={'facecolor': 'white', 'alpha': 0.5, 'pad': 10})
-                        ax.plot(np.arange(nb_days), self.df[self.df.columns[1]][-nb_days:].astype(float),'-o', color='blue', label=self.df.columns[1])
+                        ax.plot(np.arange(nb_days), self.df[self.df.columns[i]][-nb_days:].astype(float),'-o', color='blue', label=self.df.columns[i])
                         ax.set_xticks(np.arange(nb_days))
                         ax.set_xticklabels(np.array(self.df.index.values[-1 * nb_days:], dtype='datetime64[D]'), rotation=90)
                         for xtick in ax.get_xticklabels():
                             if(pd.to_datetime(xtick.get_text()).weekday()>4):xtick.set_color("red")
                         plt.xlabel("date",fontsize=14)
-                        plt.ylabel(self.df.columns[1],fontsize=14)
+                        plt.ylabel(self.df.columns[i],fontsize=14)
                         plt.legend()
-                        plt.savefig(self.pathInputAdvanced+self.df.columns[1]+'_by_date_last_'+str(nb_months)+'_months.png')
+                        plt.savefig(self.pathInputAdvanced+self.df.columns[i]+'_by_date_last_'+str(nb_months)+'_months.png')
                     except Exception as error:
                         print("Error when plotting nbDiLast"+str(nb_months)+"Months", error)
                     finally:
@@ -174,37 +174,44 @@ class Graph :
             plt.close()
 
     '''
-    plotting truth and nbDi prediction
-
-    sign of nb_elmnts_to_print design the kind of prediction on thruth will be plotted
-    positive nb_elmnts_to_print : plot nb_elmnts_to_print first elements
-    negative nb_elmnts_to_print : plot nb_elmnts_to_print last elements
+    plotting truth of test values and nbDi prediction
     '''
-    def graphTruthOnPrediction(self, nb_elmnts_to_print, y_test, test_predict):
+    def graphTruthTestOnPrediction(self, y_test, test_predict):
         try:
             plt.subplots(figsize=(18,9))
             plt.ylabel("nb demandes d'intervention",fontsize=14)
             plt.xlabel("pas par date",fontsize=14)
-            if(nb_elmnts_to_print >0) :
-                '''
-                plotting nb_elmts_to_print first : predicted on truth values
-                ''' 
-                plt.title('prediction sur valeurs réelles : ('+str(nb_elmnts_to_print)+' premiers éléments) on '+str(len(y_test))+' elements total')
-                plt.plot(y_test[:nb_elmnts_to_print],'-o', color="blue", label="réel nbDi")
-                plt.plot(test_predict[:nb_elmnts_to_print],'-o', color="green",label="prédiction nbDi")
-                plt.legend()
-                plt.savefig(self.pathOutput+'3- predictOnTest_'+str(nb_elmnts_to_print)+'_first.png')
-            elif(nb_elmnts_to_print < 0):
-                '''
-                plotting nb_elmts_to_print last : predicted on truth values
-                '''
-                plt.title('prediction sur valeurs réelles : ('+str(abs(nb_elmnts_to_print))+' derniers éléments) sur '+str(len(y_test))+' elements total')
-                plt.plot(y_test[nb_elmnts_to_print:],'-o', color="blue", label="réel nbDi")
-                plt.plot(test_predict[nb_elmnts_to_print:],'-o', color="green",label="prédiction nbDi")
-                plt.legend()
-                plt.savefig(self.pathOutput+'3- predictOnTest_'+str(abs(nb_elmnts_to_print))+'_last.png')
+            '''
+            plotting nb_elmts_to_print first : predicted on truth values
+            ''' 
+            plt.title('prediction sur valeurs réelles : '+str(len(y_test))+' elements total')
+            plt.plot(y_test[:100],'-o', color="blue", label="réel nbDi")
+            plt.plot(test_predict[:100],'-o', color="green",label="prédiction nbDi")
+            plt.legend()
+            plt.savefig(self.pathOutput+'3- predictOnTestValues'+'.png')
         except Exception as error:
             print("Error when plotting prediction on test values", error)
+        finally:
+            plt.close()
+    
+    '''
+    plotting truth of train values and nbDi prediction
+    '''
+    def graphTruthTrainOnPrediction(self, y_train, train_predict):
+        try:
+            plt.subplots(figsize=(18,9))
+            plt.ylabel("nb demandes d'intervention",fontsize=14)
+            plt.xlabel("pas par date",fontsize=14)
+            '''
+            plotting nb_elmts_to_print first : predicted on truth values
+            ''' 
+            plt.title('prediction sur valeurs réelles : '+str(len(y_train))+' elements total')
+            plt.plot(y_train[:100],'-o', color="blue", label="réel nbDi")
+            plt.plot(train_predict[:100],'-o', color="green",label="prédiction nbDi")
+            plt.legend()
+            plt.savefig(self.pathOutput+'3- predictOnTrainValues'+'.png')
+        except Exception as error:
+            print("Error when plotting prediction on train values", error)
         finally:
             plt.close()
 
@@ -255,21 +262,21 @@ class Graph :
     values thaht are higher than 3 are the outliers.
     '''
     def graphZScoreByDate(self):
-        df_without_date = self.df.iloc[:, 1:].astype('float')
-        z_scores = pd.DataFrame(zscore(df_without_date))
+        data_frame  = self.df.astype('float')
+        z_scores = pd.DataFrame(zscore(data_frame))
         try:
-            for i in range(df_without_date.shape[1]):
+            for i in range(data_frame.shape[1]):
                 #plotting all feature of the dataframe by date
                 plt.subplots(figsize=(24,11))
                 plt.text(0, 10, 'value is outlier if z_score(value) > limit z_score', style='normal',fontsize=30, bbox={'facecolor': 'none','alpha': 0.5, 'pad': 10})
-                plt.title('z_score '+df_without_date.columns[i]+' by date')
-                plt.plot(self.df.index, df_without_date[df_without_date.columns[i]].astype(float), color='blue', label=df_without_date.columns[i])
-                plt.plot(self.df.index,z_scores.iloc[:,i], color='black', label="z_score "+df_without_date.columns[i])
+                plt.title('z_score '+data_frame.columns[i]+' by date')
+                plt.plot(self.df.index, data_frame[data_frame.columns[i]].astype(float), color='blue', label=data_frame.columns[i])
+                plt.plot(self.df.index,z_scores.iloc[:,i], color='black', label="z_score "+data_frame.columns[i])
                 plt.axhline(y=3, linewidth=2, color='r', label='limit z_score == 3')
                 plt.xlabel("date",fontsize=14)
-                plt.ylabel("z_score_"+df_without_date.columns[i],fontsize=14)
+                plt.ylabel("z_score_"+data_frame.columns[i],fontsize=14)
                 plt.legend()
-                plt.savefig(self.pathInputAnalysis+'1.'+str(i)+ '- z_score_'+df_without_date.columns[i]+'_by_date.png')
+                plt.savefig(self.pathInputAnalysis+'1.'+str(i)+ '- z_score_'+data_frame.columns[i]+'_by_date.png')
         except Exception as error:
             print("Error when plotting z_score", error)
         finally:

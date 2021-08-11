@@ -2,8 +2,8 @@ import os,sys
 #add parent folder path to list of sys.path
 sys.path.insert(1, os.path.abspath('.'))
 from datetime import *
-from Preprocessing import *
-from database_connectivity.ConnectPostgreDataBase import *
+from Preprocess import *
+from DatabaseConnectivity.ConnectPostgreDataBase import *
 
 class RequestFromDataBase :
    
