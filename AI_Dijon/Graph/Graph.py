@@ -215,7 +215,7 @@ class Graph :
             plt.plot(train_predict, color="green",label="prédiction train nbDi")
             ax.set_xticks(np.arange(len(y_train)))
             ax.set_xticklabels(np.array(self.df.index.values[:len(y_train)], dtype='datetime64[D]'), rotation=90)
-            plt.locator_params(axis='x', nbins=25)
+            plt.locator_params(axis='x', nbins=100)
             plt.legend()
             plt.savefig(self.pathOutput+'3.1- predictOnTrainValues'+'.png')
         except Exception as error:
@@ -265,7 +265,7 @@ class Graph :
                 p+=1
             ax.set_xticks(np.arange(len(y_train)))
             ax.set_xticklabels(np.array(self.df.index.values[-1 * len(y_train):], dtype='datetime64[D]'), rotation=90)
-            plt.locator_params(axis='x', nbins=25)
+            plt.locator_params(axis='x', nbins=100)
             plt.legend()
             plt.savefig(self.pathOutput+'3.3- predictionAllModelOnTrainValues'+'.png')
         except Exception as error:
