@@ -1,4 +1,6 @@
 import os,sys
+
+from tensorflow.python.keras.saving.save import load_model
 sys.path.insert(1, os.path.abspath('.'))
 import numpy as np
 import pandas as pd
@@ -14,6 +16,7 @@ from Graph.Graph import *
 from GridSearchCV import *
 from DatabaseConnectivity.RequestFromDataBase import *
 from DatabaseConnectivity.ConnectPostgreDataBase import *
+from imblearn.over_sampling import SMOTE
 
 '''
 class used to run the prediction project
@@ -24,12 +27,13 @@ class Run :
         timestamp or look_back (this value need to stay lesser than 3 weeks in timeseries analysis)
         '''
         LOOK_BACK = 7
-        NB_DAYS_PREDICTED, EPOCHS, BATCH_SIZE, TEST_SIZE, VALIDATION_SPLIT, DROPOUT, WEIGHT_CONSTRAINT, SHUFFLE = 7, 500, 10, 0.2, 0.2, 0.1, 1, False
-        OPTIMIZER, PATIENCE, rootOutputFile = 'Adam', 20, "generated/files/"
+        NB_DAYS_PREDICTED, EPOCHS, BATCH_SIZE, TEST_SIZE, VALIDATION_SPLIT, DROPOUT, WEIGHT_CONSTRAINT = 7,1000, 20, 0.1, 0.2, 0.1, 1
+        OPTIMIZER, PATIENCE, rootOutputFile, rootOutputModel = 'Adam', 20, "generated/files/", "generated/model/"
         '''
         generating folders root path
         '''
         if not os.path.exists(rootOutputFile):os.makedirs(rootOutputFile)
+        if not os.path.exists(rootOutputModel):os.makedirs(rootOutputModel)
         ####################################### PRE-PREPROCESSING OF DATA #####################################################################
         processing, requestOnDataBase, model = Preprocess(), RequestFromDataBase(), Model()
         dateNbDiTupleArray = requestOnDataBase.requestDiByDate()
@@ -58,15 +62,19 @@ class Run :
         df['mto_humidity(%)'], df['mto_visibility(km)'] = [i[5] for i in dateMeteoTupleArray], [i[6] for i in dateMeteoTupleArray]
         df['mto_wind_speed(m s)'], df['mto_clouds(%)'] = [i[7] for i in dateMeteoTupleArray], [i[8] for i in dateMeteoTupleArray]
         '''
-        test stationnarity
+        coefficient of linear regression
+        '''
+        print()
+        print("-- The linear regression coefficient R is :", 
+        processing.coefCorrelationLinear(np.linspace(start=1, stop=len(df), num=len(df)), df.nbDi.astype('int')))
+        print()
+        '''
+        stationnarity of the dataset 
         '''
         isStat = processing.isStationnary(df)
         print(isStat[0])
         if(isStat[1] == False):
-            print("Time series is not stationnary !")
-            processing.stationnaryData(df, timestamp=LOOK_BACK)
-            #deleting n first LOOK_BACK lines for the first n elements of the stationnarity
-            df=df.iloc[LOOK_BACK:, :]
+            print("The time series dataset is not stationnary !")
         '''
         generating future meteo files and load CSV future_meteo file 
         '''
@@ -92,7 +100,11 @@ class Run :
         '''
         graph.graphNbDiMeteoByDate(TEST_SIZE)
         '''
-        plot linear regression graph nbDi by date
+        plot the no linear regression graph nbDi by date
+        '''
+        graph.noLinearRegressionNbDiByDate()
+        '''
+        plotting the linear regression graph of nbDi by date
         '''
         graph.linearRegressionNbDiByDate()
         '''
@@ -105,24 +117,23 @@ class Run :
         dijon=df[["nbDi", 'mto_temp(celcius)' ,'mto_temp_min(celcius)', 'mto_temp_max(celcius)','mto_pressure(hPa)', 'mto_humidity(%)', 'mto_visibility(km)', 'mto_wind_speed(m s)', 
         'mto_clouds(%)']].astype('float')
         '''
-        dijon stationnary dataframe : nbDi is stationnary
+        definition of the smote variable
         '''
-        dijon_stationnary=df[["nbDi_stationnary", 'mto_temp(celcius)' ,'mto_temp_min(celcius)', 'mto_temp_max(celcius)','mto_pressure(hPa)', 'mto_humidity(%)', 'mto_visibility(km)', 'mto_wind_speed(m s)', 
-        'mto_clouds(%)']].astype('float')
+        sm = SMOTE(random_state=20)
         '''
         detecting outliers from the dataset
         '''
-        df_outliers = processing.detect_outliers_2(dijon_stationnary)
+        df_outliers = processing.detect_outliers_2(dijon)
         '''
-        Dataframe dijon_stationnary without outliers
+        Dataframe dijon without outliers
         '''
-        #dijon = processing.remove_outliers(dijon_stationnary)
+        #dijon = processing.remove_outliers(dijon)
         '''
-        normalisation of the dijon_stationnary dataset with MinMaxScaler
+        normalisation of the dijon dataset with MinMaxScaler
         '''
-        transformed_df = pd.DataFrame(data = processing.normaliseData(dijon_stationnary.values), index=dijon_stationnary.index)
+        transformed_df = pd.DataFrame(data = processing.normaliseData(dijon.values), index=dijon.index)
         '''
-        writing the dijon_stationnary transformed data into a generated file
+        writing the dijon transformed data into a generated file
         '''
         try:
             transformed_file = open(rootOutputFile+"2- dijon_df_transformed.txt", "w+")
@@ -132,7 +143,7 @@ class Run :
         finally:
             transformed_file.close()
         '''
-        initiate train and test dataset based on dijon_stationnary dataset
+        initiate train and test dataset based on dijon dataset
         '''
         train_dataset = transformed_df.head(int(len(transformed_df)*(1-TEST_SIZE)))
         test_dataset = transformed_df.tail(len(transformed_df) - int(len(transformed_df)*(1-TEST_SIZE)))
@@ -142,17 +153,22 @@ class Run :
         dijon_train, label_train = processing.build_dataset(train_dataset, LOOK_BACK)
         dijon_test, label_test = processing.build_dataset(test_dataset, LOOK_BACK)
         '''
+        using SMOTE
+        '''
+        #dijon_train_reshape = dijon_train.reshape(dijon_train.shape[0] * dijon_train.shape[1], dijon_train.shape[2])
+        #dijon_train, label_train = sm.fit_resample(dijon_train_reshape.astype(int), label_train.ravel().astype(int))
+        '''
         updating global variables
         '''
         global_vars.x_shape = dijon_train.shape[1]
         global_vars.y_shape = dijon_train.shape[2]
         '''
-        writing output files -- dijon_stationnary transformed file
+        writing output files -- dijon transformed file
         '''
         try:
             file0,file1, file2, file3 = open(rootOutputFile+"1.1- outliers_dataframe.txt", "w+"),open(rootOutputFile+"1- init_dataframe.txt", "w+"), open(rootOutputFile+"3- train_dataset_transformed.txt", "w+"),open(rootOutputFile+"4- test_dataset_transformed.txt", "w+")
             file0.write(str(df_outliers.shape)+'\n'+str(df_outliers.head(100)))
-            file1.write(str(dijon_stationnary.shape)+'\n'+str(dijon_stationnary.head(50)))
+            file1.write(str(dijon.shape)+'\n'+str(dijon.head(50)))
             file2.write(str(train_dataset.shape)+'\n'+str(train_dataset.head(50)))
             file3.write(str(test_dataset.shape)+'\n'+str(test_dataset.head(50)))
         except OSError as error:
@@ -185,13 +201,16 @@ class Run :
         '''
         building the RNN model
         '''
-        model = model.buildModelLSTM(64)
+        model, model_name = model.buildModelLSTM()[0], model.buildModelLSTM()[1] 
         '''
         EarlyStopping to prevent the overfitting on the losses
         '''
         es= EarlyStopping(monitor='val_loss', patience=PATIENCE), 
-        history = model.fit(dijon_train, label_train, validation_split=VALIDATION_SPLIT, epochs=EPOCHS, shuffle=True,
-        batch_size=BATCH_SIZE, callbacks=[es])
+        #history = model.fit(dijon_train, label_train, validation_split=VALIDATION_SPLIT, epochs=EPOCHS,
+        #batch_size=BATCH_SIZE, callbacks=[es])
+        history = model.fit(dijon_train, label_train, validation_split=VALIDATION_SPLIT, epochs=EPOCHS,
+        batch_size=BATCH_SIZE)
+        model.save(rootOutputModel+model_name+'.h5')
         '''
         getting the RNN model result
         '''
@@ -206,13 +225,21 @@ class Run :
         '''
         evaluation of train values predicted
         '''
-        label_train, nb_elmnts_to_print = np.repeat(label_train, dijon_stationnary.shape[1], axis=-1), 50
+        label_train = np.repeat(label_train, dijon.shape[1], axis=-1)
         y_train = (processing.unormaliseData(label_train)[:,0]).reshape(label_train.shape[0], 1)
         '''
         train values on predicted train values
         '''
+        dict_train, dict_test = {}, {}
+        for i in os.listdir(rootOutputModel):
+            train_predict=load_model(rootOutputModel+i).predict(dijon_train, batch_size=32, verbose = 1)
+            train_predict = np.repeat(train_predict, dijon.shape[1], axis=-1)
+            train_predict = (processing.unormaliseData(train_predict)[:,0]).reshape(train_predict.shape[0], 1)
+            dict_train[i] = train_predict
+        graph.graphTruthTrainOnPredictions(y_train, dict_train)
+
         train_predict=model.predict(dijon_train, batch_size=32, verbose = 1)
-        train_predict = np.repeat(train_predict, dijon_stationnary.shape[1], axis=-1)
+        train_predict = np.repeat(train_predict, dijon.shape[1], axis=-1)
         train_predict = (processing.unormaliseData(train_predict)[:,0]).reshape(train_predict.shape[0], 1)
         print('nb elements in the test dataset :',len(y_train) , 'elements')
         '''
@@ -222,29 +249,34 @@ class Run :
         '''
         mesuring performances of the model on known(train) values
         '''
-        evaluate.generating_errors(y_train, train_predict, nb_elmnts_to_print)
-
+        evaluate.generating_errors(y_train, train_predict)
         print("\n-- Evaluation test on prediction")
-        
         '''
         evaluation of test values predicted
         '''
-        label_test = np.repeat(label_test, dijon_stationnary.shape[1], axis=-1)
+        label_test = np.repeat(label_test, dijon.shape[1], axis=-1)
         y_test = (processing.unormaliseData(label_test)[:,0]).reshape(label_test.shape[0], 1)
         '''
         testing predicted values
         '''
+        for i in os.listdir(rootOutputModel):
+            test_predict=load_model(rootOutputModel+i).predict(dijon_test, batch_size=32, verbose = 1)
+            test_predict = np.repeat(test_predict, dijon.shape[1], axis=-1)
+            test_predict = (processing.unormaliseData(test_predict)[:,0]).reshape(test_predict.shape[0], 1)
+            dict_test[i] = test_predict
+        graph.graphTruthTestOnPredictions(y_test, dict_test)
+
         test_predict=model.predict(dijon_test, batch_size=32, verbose = 1)
-        test_predict = np.repeat(test_predict, dijon_stationnary.shape[1], axis=-1)
+        test_predict = np.repeat(test_predict, dijon.shape[1], axis=-1)
         test_predict = (processing.unormaliseData(test_predict)[:,0]).reshape(test_predict.shape[0], 1)
         '''
-        plotting truth and nbDi prediction on nb_elmnts_to_print first and nb_elmnts_to_print last
+        plotting truth and nbDi prediction
         '''
         graph.graphTruthTestOnPrediction(y_test, test_predict)
         '''
         mesuring performances of the model
         '''
-        evaluate.generating_errors(y_test, test_predict, nb_elmnts_to_print)
+        evaluate.generating_errors(y_test, test_predict)
         '''
         predict feature : (nb_days_predict) days
         '''

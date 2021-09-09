@@ -1,4 +1,5 @@
 import os
+from scipy.sparse.construct import random
 from scipy.stats import *
 import numpy as np
 import pandas as pd
@@ -31,6 +32,7 @@ class Graph :
         self.pathInputRegression = "generated/graphs/input/linear_regression/"
         self.pathInputAutocorrelation = "generated/graphs/input_analysis/autocorrelation/"
         self.pathInputSeasonalDecompose = "generated/graphs/input_analysis/seasonal_decompose/"
+        self.color = ['red', 'black', 'green', 'violet', 'yellow', 'cyan', 'orange', 'magenta', 'pink']
         #generating folders root path
         if not os.path.exists(self.pathInput):os.makedirs(self.pathInput)
         if not os.path.exists(self.pathInputAdvanced):os.makedirs(self.pathInputAdvanced)
@@ -45,6 +47,12 @@ class Graph :
     '''
     def Pol(self, x, a, b, c, d,e,f):
         return a*x + b*x**2 + c*x**3 + d*x**4 + e*x**5 + f
+
+    ''''
+    creation of monome to plot linear regresion graph
+    '''
+    def Mon(self, x , a, b):
+        return a * x + b
 
     '''
     plotting graph of nbDi by year
@@ -109,7 +117,7 @@ class Graph :
                         ax = plt.subplots(figsize=(24,11))[1]
                         plt.title(str(nb_days)+" last_days_nbDi_by_date or last "+str(nb_months)+" months")
                         ax.text(3, 38, 'weekends in red on x axis', style='normal',fontsize=18, bbox={'facecolor': 'white', 'alpha': 0.5, 'pad': 10})
-                        ax.plot(np.arange(nb_days), self.df[self.df.columns[i]][-nb_days:].astype(float),'-o', color='blue', label=self.df.columns[i])
+                        ax.plot(np.arange(nb_days), self.df[self.df.columns[i]][-1 * nb_days:].astype(int),'-o', color='blue', label=self.df.columns[i])
                         ax.set_xticks(np.arange(nb_days))
                         ax.set_xticklabels(np.array(self.df.index.values[-1 * nb_days:], dtype='datetime64[D]'), rotation=90)
                         for xtick in ax.get_xticklabels():
@@ -139,7 +147,7 @@ class Graph :
     '''
     plotting the graph of linear regression of nbDi by date
     '''
-    def linearRegressionNbDiByDate(self):
+    def noLinearRegressionNbDiByDate(self):
         xdata=np.linspace(start=1, stop=len(self.df), num=len(self.df))
         try:
             popt = curve_fit(self.Pol, xdata, self.df['nbDi'].astype('float'))[0]
@@ -147,6 +155,24 @@ class Graph :
             plt.title('linear_regression_nbDi_by_date.png')
             plt.scatter(xdata,self.df['nbDi'].astype('float'), marker='+', color='blue')
             plt.plot(xdata, self.Pol(xdata, *popt),color='black')
+            plt.ylabel("nbDi",fontsize=14)
+            plt.savefig(self.pathInputRegression+'no_linear_regression_nbDi_by_date.png')
+        except Exception as error:
+            print("Error when plotting no linear regression nbDi by date", error)
+        finally:
+            plt.close()
+
+    '''
+    plotting the graph of linear regression of nbDi by date
+    '''
+    def linearRegressionNbDiByDate(self):
+        xdata=np.linspace(start=1, stop=len(self.df), num=len(self.df))
+        try:
+            popt = curve_fit(self.Mon, xdata, self.df['nbDi'].astype('float'))[0]
+            plt.subplots(figsize=(24,11))
+            plt.title('linear_regression_nbDi_by_date.png')
+            plt.scatter(xdata,self.df['nbDi'].astype('float'), marker='+', color='blue')
+            plt.plot(xdata, self.Mon(xdata, *popt),color='black')
             plt.ylabel("nbDi",fontsize=14)
             plt.savefig(self.pathInputRegression+'linear_regression_nbDi_by_date.png')
         except Exception as error:
@@ -172,46 +198,104 @@ class Graph :
             print("Error when plotting history model", error)
         finally:
             plt.close()
-
-    '''
-    plotting truth of test values and nbDi prediction
-    '''
-    def graphTruthTestOnPrediction(self, y_test, test_predict):
-        try:
-            plt.subplots(figsize=(18,9))
-            plt.ylabel("nb demandes d'intervention",fontsize=14)
-            plt.xlabel("pas par date",fontsize=14)
-            '''
-            plotting nb_elmts_to_print first : predicted on truth values
-            ''' 
-            plt.title('prediction sur valeurs réelles : '+str(len(y_test))+' elements total')
-            plt.plot(y_test[:100],'-o', color="blue", label="réel nbDi")
-            plt.plot(test_predict[:100],'-o', color="green",label="prédiction test nbDi")
-            plt.legend()
-            plt.savefig(self.pathOutput+'3.2- predictOnTestValues'+'.png')
-        except Exception as error:
-            print("Error when plotting prediction on test values", error)
-        finally:
-            plt.close()
     
     '''
     plotting truth of train values and nbDi prediction
     '''
     def graphTruthTrainOnPrediction(self, y_train, train_predict):
         try:
-            plt.subplots(figsize=(18,9))
+            ax = plt.subplots(figsize=(24,11))[1]
+            plt.xlabel("pas par date",fontsize=14)
+            plt.ylabel("nb demandes d'intervention",fontsize=14)
+            '''
+            plotting nb_elmts_to_print first : predicted on truth values
+            '''
+            plt.title('prediction sur valeurs réelles : '+str(len(y_train))+' elements total')
+            plt.plot(y_train, color="blue", label="réel nbDi")
+            plt.plot(train_predict, color="green",label="prédiction train nbDi")
+            ax.set_xticks(np.arange(len(y_train)))
+            ax.set_xticklabels(np.array(self.df.index.values[:len(y_train)], dtype='datetime64[D]'), rotation=90)
+            plt.locator_params(axis='x', nbins=25)
+            plt.legend()
+            plt.savefig(self.pathOutput+'3.1- predictOnTrainValues'+'.png')
+        except Exception as error:
+            print("Error when plotting prediction on train values", error)
+        finally:
+            plt.close()
+
+    '''
+    plotting truth of test values and nbDi prediction
+    '''
+    def graphTruthTestOnPrediction(self, y_test, test_predict):
+        try:
+            ax = plt.subplots(figsize=(24,11))[1]
             plt.ylabel("nb demandes d'intervention",fontsize=14)
             plt.xlabel("pas par date",fontsize=14)
             '''
             plotting nb_elmts_to_print first : predicted on truth values
             ''' 
-            plt.title('prediction sur valeurs réelles : '+str(len(y_train))+' elements total')
-            plt.plot(y_train[:100],'-o', color="blue", label="réel nbDi")
-            plt.plot(train_predict[:100],'-o', color="green",label="prédiction train nbDi")
+            plt.title('prediction sur valeurs réelles : '+str(len(y_test))+' elements total')
+            plt.plot(y_test,'-o', color="blue", label="réel nbDi")
+            plt.plot(test_predict,'-o', color="green",label="prédiction test nbDi")
+            ax.set_xticks(np.arange(len(y_test)))
+            ax.set_xticklabels(np.array(self.df.index.values[-1 * len(y_test):], dtype='datetime64[D]'), rotation=90)
             plt.legend()
-            plt.savefig(self.pathOutput+'3.1- predictOnTrainValues'+'.png')
+            plt.savefig(self.pathOutput+'3.2- predictOnTestValues'+'.png')
+        except Exception as error:
+            print("Error when plotting prediction on test values", error)
+        finally:
+            plt.close()
+
+    '''
+    plotting truth of train values and predictions of different models
+    '''
+    def graphTruthTrainOnPredictions(self, y_train, list_train_predict):
+        p = 0
+        try:
+            ax = plt.subplots(figsize=(24,11))[1]
+            plt.ylabel("nb demandes d'intervention",fontsize=14)
+            plt.xlabel("pas par date",fontsize=14)
+            '''
+            plotting nb_elmts_to_print first : predicted on truth values
+            ''' 
+            plt.title('prediction(train_set) sur valeurs réelles : '+str(len(y_train))+' elements total')
+            plt.plot(y_train, color="blue", label="réel nbDi")
+            for key, value in list_train_predict.items():
+                plt.plot(value, color=self.color[p],label="prédiction train nbDi "+key[:key.index('.')])
+                p+=1
+            ax.set_xticks(np.arange(len(y_train)))
+            ax.set_xticklabels(np.array(self.df.index.values[-1 * len(y_train):], dtype='datetime64[D]'), rotation=90)
+            plt.locator_params(axis='x', nbins=25)
+            plt.legend()
+            plt.savefig(self.pathOutput+'3.3- predictionAllModelOnTrainValues'+'.png')
         except Exception as error:
             print("Error when plotting prediction on train values", error)
+        finally:
+            plt.close()
+
+    '''
+    plotting truth of test values and predictions of different models
+    '''
+    def graphTruthTestOnPredictions(self, y_test, list_test_predict):
+        p = 0
+        try:
+            ax = plt.subplots(figsize=(24,11))[1]
+            plt.ylabel("nb demandes d'intervention",fontsize=14)
+            plt.xlabel("pas par date",fontsize=14)
+            '''
+            plotting nb_elmts_to_print first : predicted on truth values
+            ''' 
+            plt.title('prediction(test_set) sur valeurs réelles : '+str(len(y_test))+' elements total')
+            plt.plot(y_test, color="blue", label="réel nbDi")
+            for key, value in list_test_predict.items():
+                plt.plot(value, color=self.color[p],label="prédiction test nbDi "+key[:key.index('.')])
+                p+=1
+            ax.set_xticks(np.arange(len(y_test)))
+            ax.set_xticklabels(np.array(self.df.index.values[-1 * len(y_test):], dtype='datetime64[D]'), rotation=90)
+            plt.legend()
+            plt.savefig(self.pathOutput+'3.4- predictionAllModelOnTestValues'+'.png')
+        except Exception as error:
+            print("Error when plotting prediction on test values", error)
         finally:
             plt.close()
 

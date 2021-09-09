@@ -6,7 +6,7 @@ from deprecated import deprecated
 from sklearn.preprocessing import *
 from datetime import *
 from statsmodels.tsa.stattools import *
-from scipy.stats import zscore
+from scipy.stats import zscore, pearsonr
 
 
 '''
@@ -93,6 +93,12 @@ class Preprocess:
             else:
                 nbDiByDateDict[array[i][1]] = nbDi
         return nbDiByDateDict
+
+    '''
+    calcule the time series coefficient of linear correlation
+    '''
+    def coefCorrelationLinear(self, x, y) -> float:
+        return pearsonr(x, y)[0]
 
     '''
     matching dijon date with other date in start and end
