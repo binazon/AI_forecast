@@ -201,7 +201,7 @@ class Run :
         '''
         building the RNN model
         '''
-        model, model_name = model.buildModelLSTM()[0], model.buildModelLSTM()[1] 
+        model, model_name = model.buildDefaultLSTM()[0], model.buildDefaultLSTM()[1] 
         '''
         EarlyStopping to prevent the overfitting on the losses
         '''

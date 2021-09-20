@@ -133,8 +133,8 @@ class Preprocess:
     def isStationnary(self, df):
         array = adfuller(df.nbDi.astype('int'))
         res = "--- Test stationnarity : Argumented Dickey Fuller ADF test\n"
-        res +=  "ADF statistic : "+str(array[0])+"\np-value : "+str(array[1])
-        return (res, True) if array[0] < array[4]["5%"] else (res, False)
+        res +=  "ADF statistic : "+str(array[0])+"\np-value : "+str(array[1])+"\nCritical values : "+str(array[4])
+        return (res, True if array[0] < array[4]["5%"] else False)
 
     '''
     this method put the data stationnary
